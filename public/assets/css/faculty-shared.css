@@ -1,0 +1,271 @@
+/* Faculty Dashboard Shared Styles */
+:root {
+    --ios-blue: #007AFF;
+    --ios-blue-light: #5AC8FA;
+    --ios-blue-dark: #0051D5;
+    --ios-gray: #F2F2F7;
+    --ios-gray-2: #E5E5EA;
+    --ios-gray-3: #D1D1D6;
+    --ios-gray-4: #C7C7CC;
+    --ios-gray-5: #AEAEB2;
+    --ios-gray-6: #8E8E93;
+    --ios-text: #1C1C1E;
+    --ios-text-secondary: #3A3A3C;
+    --ios-text-tertiary: #48484A;
+    --success-green: #10b981;
+    --warning-orange: #f59e0b;
+    --error-red: #ef4444;
+    --info-blue: #3b82f6;
+}
+
+* {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #F0F4FF 0%, #E8F2FF 50%, #F0F8FF 100%);
+    min-height: 100vh;
+    color: var(--ios-text);
+}
+
+.sf-pro-display {
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Card Components */
+.ios-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 122, 255, 0.08), 0 2px 16px rgba(0, 0, 0, 0.04);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.ios-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 60px rgba(0, 122, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 122, 255, 0.2);
+}
+
+.stats-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 122, 255, 0.1);
+}
+
+/* Button Components */
+.ios-button {
+    background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-blue-light) 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 12px 24px;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.ios-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 122, 255, 0.4);
+}
+
+.ios-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.ios-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.ios-button:hover::before {
+    left: 100%;
+}
+
+/* Header Styles */
+.header-gradient {
+    background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-blue-light) 50%, var(--ios-blue-dark) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.header-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.15"/><circle cx="20" cy="80" r="0.5" fill="white" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.4;
+}
+
+/* Score Display Components */
+.score-excellent { color: var(--success-green); }
+.score-good { color: var(--info-blue); }
+.score-fair { color: var(--warning-orange); }
+.score-poor { color: var(--error-red); }
+
+.score-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.score-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Icon Containers */
+.icon-container {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.icon-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+    border-radius: 16px;
+}
+
+/* Gradient Backgrounds */
+.blue-gradient { background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%); }
+.purple-gradient { background: linear-gradient(135deg, #AF52DE 0%, #BF5AF2 100%); }
+.green-gradient { background: linear-gradient(135deg, #34C759 0%, #30D158 100%); }
+.orange-gradient { background: linear-gradient(135deg, #FF9500 0%, #FF9F0A 100%); }
+.red-gradient { background: linear-gradient(135deg, #FF3B30 0%, #FF453A 100%); }
+.indigo-gradient { background: linear-gradient(135deg, #5856D6 0%, #6366F1 100%); }
+
+/* Badge Components */
+.ios-badge {
+    background: linear-gradient(135deg, #34C759 0%, #30D158 100%);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-30px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.animate-slide-in {
+    animation: slideIn 0.8s ease-out;
+}
+
+.animate-delay-100 { animation-delay: 0.1s; }
+.animate-delay-200 { animation-delay: 0.2s; }
+.animate-delay-300 { animation-delay: 0.3s; }
+.animate-delay-400 { animation-delay: 0.4s; }
+
+/* Modal Styles */
+.modal-backdrop {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+/* Progress Bars */
+.progress-bar {
+    height: 8px;
+    background: var(--ios-gray-2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.progress-excellent { background: linear-gradient(90deg, var(--success-green), #059669); }
+.progress-good { background: linear-gradient(90deg, var(--info-blue), #2563eb); }
+.progress-fair { background: linear-gradient(90deg, var(--warning-orange), #d97706); }
+.progress-poor { background: linear-gradient(90deg, var(--error-red), #dc2626); }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .ios-card {
+        margin: 0 16px;
+        border-radius: 16px;
+    }
+    
+    .stats-card {
+        border-radius: 12px;
+    }
+    
+    .header-gradient {
+        padding: 24px 16px;
+    }
+}

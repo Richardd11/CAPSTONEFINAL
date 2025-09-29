@@ -1,0 +1,16 @@
+QUICK FIX FOR EXAM RESULTS LOADING ISSUE
+==========================================
+
+1. Open: src/App/Views/faculty/exam-results.php
+
+2. Find this line (around line 11):
+   <link href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/assets/css/faculty-shared.css" rel="stylesheet">
+
+3. Add this line RIGHT AFTER it:
+   <script src="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/exam-results-fix.js"></script>
+
+4. Save the file and refresh your exam results page
+
+That's it! The enhanced JavaScript will fix the loading issue.
+
+If you still have problems, visit: debug_api.php to see what's happening with the API.
