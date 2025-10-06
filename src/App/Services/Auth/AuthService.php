@@ -222,9 +222,7 @@ class AuthService
     {
         if (!$this->isAuthenticated()) {
             // Redirect to login page
-            $scriptName = $_SERVER['SCRIPT_NAME'];
-            $basePath = dirname($scriptName);
-            header('Location: ' . $basePath . '/login');
+            header('Location: /login');
             exit;
         }
 
@@ -247,17 +245,13 @@ class AuthService
         $user = $this->getCurrentUser();
         if (!$user || !isset($user['role'])) {
             // Redirect to login page
-            $scriptName = $_SERVER['SCRIPT_NAME'];
-            $basePath = dirname($scriptName);
-            header('Location: ' . $basePath . '/login');
+            header('Location: /login');
             exit;
         }
         
         if ($user['role'] !== $requiredRole) {
             // Redirect to login page (insufficient permissions)
-            $scriptName = $_SERVER['SCRIPT_NAME'];
-            $basePath = dirname($scriptName);
-            header('Location: ' . $basePath . '/login');
+            header('Location: /login');
             exit;
         }
 

@@ -253,9 +253,7 @@ class AdminController
      */
     private function redirectToDashboard()
     {
-        $scriptName = $_SERVER['SCRIPT_NAME'];
-        $basePath = dirname($scriptName);
-        header('Location: ' . $basePath . '/admin/dashboard');
+        header('Location: /admin/dashboard');
         exit;
     }
 
