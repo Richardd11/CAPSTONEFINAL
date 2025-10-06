@@ -319,7 +319,7 @@
 				</div>
 			<?php endif; ?>
 
-			<form action="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/api/auth/login" method="POST" id="loginForm" class="space-y-6">
+			<form action="/api/auth/login" method="POST" id="loginForm" class="space-y-6">
 				<!-- School ID Field -->
 				<div class="floating-label animate-fade-in-up animate-delay-300">
 					<input 
@@ -406,8 +406,16 @@
 			}, 150);
 		}
 
-		// Enhanced form submission with loading state
+		// Enhanced form submission with loading state and double-submit prevention
+		let isSubmitting = false;
 		document.getElementById('loginForm').addEventListener('submit', function(e) {
+			// Prevent double submission
+			if (isSubmitting) {
+				e.preventDefault();
+				return false;
+			}
+			
+			isSubmitting = true;
 			const submitButton = document.getElementById('submitButton');
 			const buttonText = document.getElementById('buttonText');
 			

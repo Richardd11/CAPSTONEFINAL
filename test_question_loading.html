@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Question Loading</title>
+</head>
+<body>
+    <h1>Question Loading Test</h1>
+    <div id="output"></div>
+
+    <script src="/js/models/Question.js"></script>
+    <script src="/js/services/ExamBuilderService.js"></script>
+    
+    <script>
+        // Simulate the data structure from PHP
+        window.existingQuestions = [
+            {
+                id: 1,
+                question_text: "What is the capital of France?",
+                question_type: "multiple_choice",
+                points: 10,
+                order_index: 1,
+                options: [
+                    { option_text: "London", is_correct: false },
+                    { option_text: "Paris", is_correct: true },
+                    { option_text: "Berlin", is_correct: false },
+                    { option_text: "Madrid", is_correct: false }
+                ]
+            },
+            {
+                id: 2,
+                question_text: "The Earth is round.",
+                question_type: "true_false",
+                points: 5,
+                order_index: 2,
+                correct_answer: "true"
+            }
+        ];
+
+        console.log('Testing question loading...');
+        
+        const service = new ExamBuilderService();
+        const output = document.getElementById('output');
+        
+        window.existingQuestions.forEach((questionData, index) => {
+            console.log(`\n=== Testing Question ${index + 1} ===`);
+            console.log('Raw data:', questionData);
+            
+            const parsedData = service.parseQuestionData(questionData);
+            console.log('Parsed data:', parsedData);
+            
+            const question = Question.fromJSON(parsedData);
+            console.log('Question object:', question);
+            
+            // Display results
+            const div = document.createElement('div');
+            div.style.border = '1px solid #ccc';
+            div.style.margin = '10px';
+            div.style.padding = '10px';
+            div.innerHTML = `
+                <h3>Question ${index + 1}</h3>
+                <p><strong>ID:</strong> ${question.id}</p>
+                <p><strong>Type:</strong> ${question.type}</p>
+                <p><strong>Text:</strong> ${question.text}</p>
+                <p><strong>Points:</strong> ${question.points}</p>
+                <p><strong>Options:</strong> ${JSON.stringify(question.options)}</p>
+                <p><strong>Correct Answer:</strong> ${question.correctAnswer}</p>
+            `;
+            output.appendChild(div);
+        });
+    </script>
+</body>
+</html>

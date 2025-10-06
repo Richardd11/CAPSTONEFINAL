@@ -25,8 +25,8 @@ class QuestionDAO implements QuestionDAOInterface
             $stmt = $this->db->prepare("
                 INSERT INTO questions (
                     exam_id, question_text, question_type, points, order_index,
-                    is_required, explanation
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    is_required, explanation, correct_answer
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $result = $stmt->execute([
@@ -36,7 +36,8 @@ class QuestionDAO implements QuestionDAOInterface
                 $question->getPoints(),
                 $question->getOrderIndex(),
                 $question->getIsRequired() ? 1 : 0,
-                $question->getExplanation()
+                $question->getExplanation(),
+                $question->getCorrectAnswer()
             ]);
             
             if ($result) {
@@ -60,7 +61,7 @@ class QuestionDAO implements QuestionDAOInterface
             $stmt = $this->db->prepare("
                 UPDATE questions SET
                     question_text = ?, question_type = ?, points = ?, order_index = ?,
-                    is_required = ?, explanation = ?, updated_at = NOW()
+                    is_required = ?, explanation = ?, correct_answer = ?, updated_at = NOW()
                 WHERE id = ?
             ");
             
@@ -71,6 +72,7 @@ class QuestionDAO implements QuestionDAOInterface
                 $question->getOrderIndex(),
                 $question->getIsRequired() ? 1 : 0,
                 $question->getExplanation(),
+                $question->getCorrectAnswer(),
                 $question->getId()
             ]);
         } catch (\PDOException $e) {

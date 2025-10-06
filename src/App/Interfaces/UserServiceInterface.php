@@ -33,4 +33,19 @@ interface UserServiceInterface
      * Get students by year and section
      */
     public function getStudentsByYearSection($yearLevel, $section);
+
+    /**
+     * Sort users by role hierarchy and additional criteria
+     */
+    public function sortUsers(array $users): array;
+
+    /**
+     * Get users sorted by role and other criteria
+     */
+    public function getAllUsersSorted(): array;
+
+    /**
+     * Prepare user data for view presentation
+     */
+    public function prepareUsersForView(array $users): array;
 }

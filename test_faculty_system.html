@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty System Test Suite</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ccc;
+            background: #f9f9f9;
+        }
+        .test-item.success {
+            border-left-color: #10b981;
+            background: #ecfdf5;
+        }
+        .test-item.error {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .test-item.warning {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        pre {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        h1 {
+            color: #1f2937;
+        }
+        h2 {
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Faculty System Test Suite</h1>
+    <p>Comprehensive testing for MVC refactored faculty system</p>
+
+    <!-- Test Controls -->
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="runAllTests()">▶️ Run All Tests</button>
+        <button onclick="clearResults()">🗑️ Clear Results</button>
+        <button onclick="testAPIs()">🔌 Test APIs Only</button>
+        <button onclick="testJSLoading()">📦 Test JS Loading</button>
+    </div>
+
+    <!-- Test Results -->
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        let testCount = 0;
+        let passCount = 0;
+        let failCount = 0;
+
+        function clearResults() {
+            results.innerHTML = '';
+            testCount = 0;
+            passCount = 0;
+            failCount = 0;
+        }
+
+        function addTest(name, status, message, details = null) {
+            testCount++;
+            if (status === 'success') passCount++;
+            if (status === 'error') failCount++;
+
+            const div = document.createElement('div');
+            div.className = `test-item ${status}`;
+            div.innerHTML = `
+                <strong>${status === 'success' ? '✅' : status === 'error' ? '❌' : '⚠️'} ${name}</strong>
+                <p>${message}</p>
+                ${details ? `<pre>${JSON.stringify(details, null, 2)}</pre>` : ''}
+            `;
+            results.appendChild(div);
+        }
+
+        function addSection(title) {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            section.innerHTML = `<h2>${title}</h2>`;
+            results.appendChild(section);
+            return section;
+        }
+
+        async function runAllTests() {
+            clearResults();
+            
+            await testJSLoading();
+            await testAPIs();
+            await testMVCStructure();
+            
+            // Summary
+            const summary = document.createElement('div');
+            summary.className = 'test-section';
+            summary.innerHTML = `
+                <h2>📊 Test Summary</h2>
+                <p><strong>Total Tests:</strong> ${testCount}</p>
+                <p style="color: #10b981;"><strong>Passed:</strong> ${passCount}</p>
+                <p style="color: #ef4444;"><strong>Failed:</strong> ${failCount}</p>
+                <p><strong>Success Rate:</strong> ${((passCount/testCount)*100).toFixed(1)}%</p>
+            `;
+            results.appendChild(summary);
+        }
+
+        async function testJSLoading() {
+            addSection('📦 JavaScript Loading Tests');
+
+            // Test class definitions
+            const classes = [
+                'FacultyExamResultsService',
+                'FacultyExamResultsView',
+                'StudentDetailsRenderer',
+                'FacultyExamResultsController',
+                'ExamResult',
+                'Exam'
+            ];
+
+            classes.forEach(className => {
+                if (typeof window[className] !== 'undefined') {
+                    addTest(`${className} loaded`, 'success', `Class ${className} is defined`);
+                } else {
+                    addTest(`${className} loaded`, 'error', `Class ${className} is NOT defined`);
+                }
+            });
+
+            // Test controller instance
+            if (typeof facultyExamResults !== 'undefined') {
+                addTest('Controller instance', 'success', 'facultyExamResults instance exists');
+                
+                // Test controller has required methods
+                const methods = ['selectExam', 'viewDetails', 'exportExamResults', 'showOverrideModal'];
+                methods.forEach(method => {
+                    if (typeof facultyExamResults[method] === 'function') {
+                        addTest(`Controller.${method}()`, 'success', `Method exists`);
+                    } else {
+                        addTest(`Controller.${method}()`, 'error', `Method missing`);
+                    }
+                });
+            } else {
+                addTest('Controller instance', 'error', 'facultyExamResults instance NOT found');
+            }
+        }
+
+        async function testAPIs() {
+            addSection('🔌 API Endpoint Tests');
+
+            const apiTests = [
+                { name: 'Get Exams', url: '/faculty/api/exams', method: 'GET' },
+                { name: 'Get Exam Results (ID=1)', url: '/faculty/api/exam/1/results', method: 'GET' },
+                { name: 'Get Student Details (ID=1)', url: '/faculty/api/student-exam-details/1', method: 'GET' },
+            ];
+
+            for (const test of apiTests) {
+                try {
+                    const response = await fetch(test.url, { method: test.method });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        addTest(test.name, 'success', `HTTP ${response.status}`, { 
+                            status: response.status,
+                            hasData: !!data,
+                            success: data.success
+                        });
+                    } else if (response.status === 404) {
+                        addTest(test.name, 'error', `HTTP 404 - Route not found`);
+                    } else if (response.status === 401 || response.status === 403) {
+                        addTest(test.name, 'warning', `HTTP ${response.status} - Authentication required (expected)`);
+                    } else {
+                        addTest(test.name, 'error', `HTTP ${response.status} - ${response.statusText}`);
+                    }
+                } catch (error) {
+                    addTest(test.name, 'error', `Network error: ${error.message}`);
+                }
+            }
+        }
+
+        async function testMVCStructure() {
+            addSection('🏗️ MVC Architecture Tests');
+
+            // Test Service Layer
+            if (typeof FacultyExamResultsService !== 'undefined') {
+                const service = new FacultyExamResultsService();
+                
+                // Test service methods exist
+                const serviceMethods = [
+                    'fetchExams',
+                    'fetchExamResults',
+                    'calculateStatistics',
+                    'getGrade',
+                    'generateCSVData'
+                ];
+                
+                serviceMethods.forEach(method => {
+                    if (typeof service[method] === 'function') {
+                        addTest(`Service.${method}()`, 'success', 'Method exists');
+                    } else {
+                        addTest(`Service.${method}()`, 'error', 'Method missing');
+                    }
+                });
+
+                // Test grade calculation
+                const grade = service.getGrade(85);
+                if (grade === 'B+') {
+                    addTest('Grade calculation', 'success', `getGrade(85) = ${grade}`);
+                } else {
+                    addTest('Grade calculation', 'error', `Expected B+, got ${grade}`);
+                }
+
+                // Test statistics calculation
+                const testResults = [
+                    { score: 80 },
+                    { score: 90 },
+                    { score: 70 }
+                ];
+                const stats = service.calculateStatistics(testResults);
+                
+                if (stats.averageScore === 80) {
+                    addTest('Statistics calculation', 'success', `Average of [80,90,70] = 80`, stats);
+                } else {
+                    addTest('Statistics calculation', 'error', `Expected 80, got ${stats.averageScore}`, stats);
+                }
+            }
+
+            // Test View Layer
+            if (typeof FacultyExamResultsView !== 'undefined') {
+                const mockService = new FacultyExamResultsService();
+                const view = new FacultyExamResultsView(mockService);
+                
+                const viewMethods = [
+                    'renderExamsList',
+                    'renderResults',
+                    'showToast',
+                    'downloadCSV'
+                ];
+                
+                viewMethods.forEach(method => {
+                    if (typeof view[method] === 'function') {
+                        addTest(`View.${method}()`, 'success', 'Method exists');
+                    } else {
+                        addTest(`View.${method}()`, 'error', 'Method missing');
+                    }
+                });
+            }
+
+            // Test Model Layer
+            if (typeof ExamResult !== 'undefined') {
+                const testData = {
+                    id: 1,
+                    name: 'John Doe',
+                    student_id: '2021-001',
+                    score: 85.5,
+                    completed_at: '2024-01-01'
+                };
+                
+                const examResult = new ExamResult(testData);
+                
+                if (examResult.getScore() === 85.5) {
+                    addTest('ExamResult model', 'success', 'Model instantiation and getters work', {
+                        score: examResult.getScore(),
+                        name: examResult.getName()
+                    });
+                } else {
+                    addTest('ExamResult model', 'error', 'Model getters not working');
+                }
+            }
+        }
+
+        // Auto-run tests if on exam-results page
+        if (window.location.pathname.includes('exam-results')) {
+            console.log('📋 Running automatic tests...');
+            setTimeout(() => {
+                runAllTests();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

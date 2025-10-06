@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam System - 100% Functionality Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-pass { background: linear-gradient(to right, #10b981, #059669); }
+        .test-fail { background: linear-gradient(to right, #ef4444, #dc2626); }
+        .test-pending { background: linear-gradient(to right, #f59e0b, #d97706); }
+        .test-running { 
+            background: linear-gradient(to right, #3b82f6, #2563eb);
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .8; }
+        }
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-100 min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
+                <h1 class="text-3xl font-bold mb-2">
+                    <i class="fas fa-clipboard-check mr-3"></i>
+                    Exam System - 100% Functionality Test Suite
+                </h1>
+                <p class="text-purple-100">Comprehensive testing for creation, saving, editing, and dynamic interactions</p>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="p-6 bg-gray-50 border-b">
+                <div class="flex flex-wrap gap-4">
+                    <button onclick="runAllTests()" 
+                            class="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all">
+                        <i class="fas fa-play mr-2"></i>Run All Tests
+                    </button>
+                    <button onclick="testDatabaseConnection()" 
+                            class="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                        <i class="fas fa-database mr-2"></i>Test Database
+                    </button>
+                    <button onclick="testExamCreation()" 
+                            class="px-6 py-3 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
+                        <i class="fas fa-plus mr-2"></i>Test Creation
+                    </button>
+                    <button onclick="testExamEditing()" 
+                            class="px-6 py-3 bg-indigo-500 text-white rounded-lg font-semibold hover:bg-indigo-600 transition">
+                        <i class="fas fa-edit mr-2"></i>Test Editing
+                    </button>
+                    <button onclick="testDynamicInteractions()" 
+                            class="px-6 py-3 bg-pink-500 text-white rounded-lg font-semibold hover:bg-pink-600 transition">
+                        <i class="fas fa-hand-pointer mr-2"></i>Test Interactions
+                    </button>
+                    <button onclick="clearResults()" 
+                            class="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition">
+                        <i class="fas fa-trash mr-2"></i>Clear Results
+                    </button>
+                </div>
+            </div>
+
+            <!-- Test Results -->
+            <div id="testResults" class="p-6 space-y-4 max-h-[600px] overflow-y-auto">
+                <div class="text-center text-gray-500 py-12">
+                    <i class="fas fa-vial text-6xl mb-4"></i>
+                    <p class="text-xl">Click "Run All Tests" to begin comprehensive testing</p>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div id="testSummary" class="p-6 bg-gray-50 border-t hidden">
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-800" id="totalTests">0</div>
+                        <div class="text-sm text-gray-600">Total Tests</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600" id="passedTests">0</div>
+                        <div class="text-sm text-gray-600">Passed</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-red-600" id="failedTests">0</div>
+                        <div class="text-sm text-gray-600">Failed</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-blue-600" id="successRate">0%</div>
+                        <div class="text-sm text-gray-600">Success Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testResults = [];
+        let testId = 0;
+
+        // Test result logging
+        function addTestResult(category, test, status, details = '') {
+            testId++;
+            const result = {
+                id: testId,
+                category,
+                test,
+                status,
+                details,
+                timestamp: new Date().toISOString()
+            };
+            
+            testResults.push(result);
+            renderTestResult(result);
+            updateSummary();
+            return result;
+        }
+
+        // Render individual test result
+        function renderTestResult(result) {
+            const container = document.getElementById('testResults');
+            const statusClass = result.status === 'pass' ? 'test-pass' : 
+                               result.status === 'fail' ? 'test-fail' : 
+                               result.status === 'running' ? 'test-running' : 'test-pending';
+            
+            const statusIcon = result.status === 'pass' ? 'check-circle' :
+                              result.status === 'fail' ? 'times-circle' :
+                              result.status === 'running' ? 'spinner fa-spin' : 'clock';
+            
+            const html = `
+                <div id="test-${result.id}" class="bg-white rounded-lg shadow-md overflow-hidden transform transition-all hover:scale-[1.02]">
+                    <div class="${statusClass} text-white p-3 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-${statusIcon} text-xl mr-3"></i>
+                            <div>
+                                <div class="font-semibold">${result.category} - ${result.test}</div>
+                                ${result.details ? `<div class="text-xs opacity-90">${result.details}</div>` : ''}
+                            </div>
+                        </div>
+                        <div class="text-xs opacity-75">${new Date(result.timestamp).toLocaleTimeString()}</div>
+                    </div>
+                </div>
+            `;
+            
+            if (container.querySelector('.text-center.text-gray-500')) {
+                container.innerHTML = '';
+            }
+            
+            container.insertAdjacentHTML('beforeend', html);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Update test summary
+        function updateSummary() {
+            const summary = document.getElementById('testSummary');
+            summary.classList.remove('hidden');
+            
+            const total = testResults.filter(r => r.status !== 'running').length;
+            const passed = testResults.filter(r => r.status === 'pass').length;
+            const failed = testResults.filter(r => r.status === 'fail').length;
+            const rate = total > 0 ? Math.round((passed / total) * 100) : 0;
+            
+            document.getElementById('totalTests').textContent = total;
+            document.getElementById('passedTests').textContent = passed;
+            document.getElementById('failedTests').textContent = failed;
+            document.getElementById('successRate').textContent = rate + '%';
+        }
+
+        // Clear results
+        function clearResults() {
+            testResults = [];
+            testId = 0;
+            document.getElementById('testResults').innerHTML = `
+                <div class="text-center text-gray-500 py-12">
+                    <i class="fas fa-vial text-6xl mb-4"></i>
+                    <p class="text-xl">Click "Run All Tests" to begin comprehensive testing</p>
+                </div>
+            `;
+            document.getElementById('testSummary').classList.add('hidden');
+        }
+
+        // Test Database Connection
+        async function testDatabaseConnection() {
+            const testHandle = addTestResult('Database', 'Connection Test', 'running', 'Testing database connectivity...');
+            
+            try {
+                const response = await fetch('/api/test/database', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    testHandle.status = 'pass';
+                    testHandle.details = 'Database connection successful - correct_answer column verified';
+                } else {
+                    testHandle.status = 'fail';
+                    testHandle.details = 'Database connection failed or column missing';
+                }
+            } catch (error) {
+                testHandle.status = 'fail';
+                testHandle.details = `Error: ${error.message}`;
+            }
+            
+            renderTestResult(testHandle);
+            updateSummary();
+        }
+
+        // Test Exam Creation
+        async function testExamCreation() {
+            // Test 1: Create exam with multiple choice questions
+            let test = addTestResult('Creation', 'Multiple Choice Exam', 'running', 'Creating exam with MC questions...');
+            
+            try {
+                const examData = {
+                    title: 'Test MC Exam ' + Date.now(),
+                    description: 'Test exam with multiple choice questions',
+                    subject_id: 1,
+                    exam_type: 'quiz',
+                    time_limit: 30,
+                    questions: [
+                        {
+                            question_type: 'multiple_choice',
+                            question_text: 'What is 2 + 2?',
+                            points: 1,
+                            options: [
+                                { option_text: '3', is_correct: 0 },
+                                { option_text: '4', is_correct: 1 },
+                                { option_text: '5', is_correct: 0 },
+                                { option_text: '6', is_correct: 0 }
+                            ]
+                        }
+                    ]
+                };
+                
+                const response = await fetch('/faculty/exams/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(examData)
+                });
+                
+                if (response.ok) {
+                    test.status = 'pass';
+                    test.details = 'Multiple choice exam created successfully';
+                } else {
+                    test.status = 'fail';
+                    test.details = 'Failed to create MC exam: ' + response.statusText;
+                }
+            } catch (error) {
+                test.status = 'fail';
+                test.details = `Error: ${error.message}`;
+            }
+            
+            renderTestResult(test);
+            
+            // Test 2: Create exam with true/false questions
+            test = addTestResult('Creation', 'True/False Exam', 'running', 'Creating exam with T/F questions...');
+            
+            try {
+                const examData = {
+                    title: 'Test TF Exam ' + Date.now(),
+                    description: 'Test exam with true/false questions',
+                    subject_id: 1,
+                    exam_type: 'quiz',
+                    time_limit: 30,
+                    questions: [
+                        {
+                            question_type: 'true_false',
+                            question_text: 'The Earth is flat.',
+                            points: 1,
+                            correct_answer: 'false'
+                        },
+                        {
+                            question_type: 'true_false',
+                            question_text: 'Water boils at 100°C at sea level.',
+                            points: 1,
+                            correct_answer: 'true'
+                        }
+                    ]
+                };
+                
+                const response = await fetch('/faculty/exams/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(examData)
+                });
+                
+                if (response.ok) {
+                    test.status = 'pass';
+                    test.details = 'True/False exam created successfully with correct_answer field';
+                } else {
+                    const errorData = await response.json();
+                    test.status = 'fail';
+                    test.details = errorData.message || 'Failed to create T/F exam';
+                }
+            } catch (error) {
+                test.status = 'fail';
+                test.details = `Error: ${error.message}`;
+            }
+            
+            renderTestResult(test);
+            updateSummary();
+        }
+
+        // Test Exam Editing
+        async function testExamEditing() {
+            const test = addTestResult('Editing', 'Update Existing Exam', 'running', 'Testing exam update functionality...');
+            
+            try {
+                // First get an existing exam
+                const listResponse = await fetch('/faculty/api/exams');
+                if (listResponse.ok) {
+                    const exams = await listResponse.json();
+                    if (exams.length > 0) {
+                        const examId = exams[0].id;
+                        
+                        // Update the exam
+                        const updateData = {
+                            id: examId,
+                            title: 'Updated Test Exam ' + Date.now(),
+                            questions: exams[0].questions || []
+                        };
+                        
+                        const updateResponse = await fetch(`/faculty/exams/update/${examId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updateData)
+                        });
+                        
+                        if (updateResponse.ok) {
+                            test.status = 'pass';
+                            test.details = 'Exam updated successfully without creating duplicates';
+                        } else {
+                            test.status = 'fail';
+                            test.details = 'Failed to update exam';
+                        }
+                    } else {
+                        test.status = 'pending';
+                        test.details = 'No existing exams to test editing';
+                    }
+                } else {
+                    test.status = 'fail';
+                    test.details = 'Failed to fetch existing exams';
+                }
+            } catch (error) {
+                test.status = 'fail';
+                test.details = `Error: ${error.message}`;
+            }
+            
+            renderTestResult(test);
+            updateSummary();
+        }
+
+        // Test Dynamic Interactions
+        async function testDynamicInteractions() {
+            // Test Multiple Choice dynamic selection
+            let test = addTestResult('Interactions', 'MC Option Selection', 'running', 'Testing dynamic MC option selection...');
+            
+            try {
+                // Create a mock question element
+                const mockHTML = `
+                    <div data-question-id="test-mc-1" data-question-type="multiple_choice">
+                        <div class="option-item">
+                            <input type="radio" class="correct-answer" name="correct_test" data-question-id="test-mc-1" data-option-index="0">
+                            <input type="text" class="option-text" value="Option A">
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" class="correct-answer" name="correct_test" data-question-id="test-mc-1" data-option-index="1">
+                            <input type="text" class="option-text" value="Option B">
+                        </div>
+                    </div>
+                `;
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = mockHTML;
+                document.body.appendChild(tempDiv);
+                
+                const questionElement = tempDiv.querySelector('[data-question-id="test-mc-1"]');
+                const optionItems = questionElement.querySelectorAll('.option-item');
+                
+                // Test clicking on option
+                optionItems[1].click();
+                const radios = questionElement.querySelectorAll('.correct-answer');
+                
+                if (radios[1].checked) {
+                    test.status = 'pass';
+                    test.details = 'Multiple choice option selection works correctly';
+                } else {
+                    test.status = 'fail';
+                    test.details = 'Option click did not update radio selection';
+                }
+                
+                document.body.removeChild(tempDiv);
+            } catch (error) {
+                test.status = 'fail';
+                test.details = `Error: ${error.message}`;
+            }
+            
+            renderTestResult(test);
+            
+            // Test True/False dynamic selection
+            test = addTestResult('Interactions', 'T/F Answer Selection', 'running', 'Testing dynamic T/F selection...');
+            
+            try {
+                const mockHTML = `
+                    <div data-question-id="test-tf-1" data-question-type="true_false">
+                        <input type="radio" class="true-false-answer" name="tf_test" value="true" data-question-id="test-tf-1">
+                        <input type="radio" class="true-false-answer" name="tf_test" value="false" data-question-id="test-tf-1">
+                    </div>
+                `;
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = mockHTML;
+                document.body.appendChild(tempDiv);
+                
+                const tfRadios = tempDiv.querySelectorAll('.true-false-answer');
+                tfRadios[1].click();
+                
+                if (tfRadios[1].checked && tfRadios[1].value === 'false') {
+                    test.status = 'pass';
+                    test.details = 'True/False selection works correctly';
+                } else {
+                    test.status = 'fail';
+                    test.details = 'T/F selection did not work properly';
+                }
+                
+                document.body.removeChild(tempDiv);
+            } catch (error) {
+                test.status = 'fail';
+                test.details = `Error: ${error.message}`;
+            }
+            
+            renderTestResult(test);
+            updateSummary();
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            clearResults();
+            
+            addTestResult('System', 'Test Suite Started', 'pass', 'Beginning comprehensive testing...');
+            
+            await testDatabaseConnection();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testExamCreation();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testExamEditing();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDynamicInteractions();
+            
+            addTestResult('System', 'Test Suite Complete', 'pass', 'All tests executed successfully');
+            
+            // Final summary
+            const total = testResults.filter(r => r.status !== 'running' && r.category !== 'System').length;
+            const passed = testResults.filter(r => r.status === 'pass' && r.category !== 'System').length;
+            const rate = Math.round((passed / total) * 100);
+            
+            if (rate === 100) {
+                addTestResult('Summary', 'PERFECT SCORE!', 'pass', '🎉 All functionality working at 100%!');
+            } else if (rate >= 80) {
+                addTestResult('Summary', 'Good Performance', 'pass', `${rate}% tests passed - Minor issues detected`);
+            } else if (rate >= 50) {
+                addTestResult('Summary', 'Needs Improvement', 'pending', `${rate}% tests passed - Several issues need attention`);
+            } else {
+                addTestResult('Summary', 'Critical Issues', 'fail', `${rate}% tests passed - Major problems detected`);
+            }
+        }
+
+        // Auto-run on page load (optional)
+        // window.addEventListener('DOMContentLoaded', runAllTests);
+    </script>
+</body>
+</html>

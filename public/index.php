@@ -5,7 +5,7 @@ session_start();
 // Set timezone to Philippines (adjust as needed)
 date_default_timezone_set('Asia/Manila');
 
-require_once '../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Core\Router;
 use App\Controllers\Auth\AuthController;
@@ -22,14 +22,19 @@ $router = new Router();
 $authController = new AuthController();
 // Protected controllers are instantiated lazily inside route handlers
 
-// Debug information (remove this later)
+// Debug information for routing issues
 $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$method = $_SERVER['REQUEST_METHOD'];
+error_log("=== REQUEST DEBUG ===");
+error_log("Method: " . $method);
 error_log("Requested path: " . $currentPath);
+error_log("Script name: " . $_SERVER['SCRIPT_NAME']);
+error_log("Request URI: " . $_SERVER['REQUEST_URI']);
+error_log("====================");
 
 // Root route - redirect to login
 $router->get('/', function() {
-    $basePath = dirname($_SERVER['SCRIPT_NAME']);
-    header('Location: ' . $basePath . '/login');
+    header('Location: /login');
     exit;
 });
 
@@ -39,7 +44,8 @@ $router->get('/login', function() use ($authController) {
 });
 
 // API routes for authentication
-$router->post('/api/auth/login', function() use ($authController) {
+$router->post('/api/auth/login', function() {
+    $authController = new \App\Controllers\Auth\AuthController();
     $authController->login();
 });
 
@@ -84,12 +90,32 @@ $router->post('/faculty/save-exam', function() {
     (new ExamController())->saveExam();
 });
 
+$router->post('/faculty/exams/save', function() {
+    (new ExamController())->saveExam();
+});
+
+$router->post('/faculty/exams/update/{id}', function($id) {
+    (new ExamController())->updateExam($id);
+});
+
+$router->post('/faculty/exams/autosave', function() {
+    (new ExamController())->autoSave();
+});
+
+$router->post('/faculty/exams/validate', function() {
+    (new ExamController())->validateExam();
+});
+
 $router->get('/faculty/exams', function() {
     (new ExamController())->listExams();
 });
 
 $router->get('/faculty/exam/{id}', function($id) {
     (new ExamController())->viewExam($id);
+});
+
+$router->get('/faculty/api/exam/{id}', function($id) {
+    (new ExamController())->getExamApi($id);
 });
 
 $router->get('/faculty/exam/{id}/edit', function($id) {
@@ -129,6 +155,19 @@ $router->get('/faculty/api/student-exam-details/{id}', function($id) {
 $router->post('/faculty/api/exam-attempt/{id}/recalculate-score', function($id) {
     (new ExamController())->recalculateScore($id);
 });
+
+$router->post('/faculty/api/override-score', function() {
+    error_log("=== OVERRIDE SCORE ROUTE CALLED ===");
+    (new FacultyController())->overrideScore();
+});
+
+// Debug: Log all POST routes after registration
+error_log("=== ALL POST ROUTES REGISTERED ===");
+$reflection = new ReflectionClass($router);
+$property = $reflection->getProperty('routes');
+$property->setAccessible(true);
+$routes = $property->getValue($router);
+error_log("POST routes: " . json_encode(array_keys($routes['POST'] ?? [])));
 
 // Faculty Student Management Routes
 $router->get('/faculty/students', function() {
@@ -224,6 +263,31 @@ $router->post('/admin/users/delete-faculty', function() {
 
 $router->post('/admin/users/delete/{id}', function($id) {
     (new AdminController())->deleteUser($id);
+});
+
+// Admin API Routes for dashboard functionality
+$router->get('/admin/statistics', function() {
+    (new AdminController())->getStatistics();
+});
+
+$router->get('/admin/users', function() {
+    (new AdminController())->getUsers();
+});
+
+$router->get('/admin/users/{id}', function($id) {
+    (new AdminController())->getUser($id);
+});
+
+$router->post('/admin/users', function() {
+    (new AdminController())->createUser();
+});
+
+$router->put('/admin/users/{id}', function($id) {
+    (new AdminController())->updateUser($id);
+});
+
+$router->delete('/admin/users/{id}', function($id) {
+    (new AdminController())->deleteUserApi($id);
 });
 
 // Subject Management Routes (AJAX and direct)

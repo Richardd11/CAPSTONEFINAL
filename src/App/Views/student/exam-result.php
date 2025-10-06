@@ -197,7 +197,7 @@
                     </div>
                 </div>
                 <div class="animate-fade-in-up animate-delay-200">
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/student/dashboard" 
+                    <a href="/student/dashboard" 
                        class="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-3 rounded-2xl hover:bg-white hover:text-blue-600 transition-all duration-300 font-semibold">
                         <i class="fas fa-arrow-left mr-2"></i>
                         Back to Dashboard
@@ -234,6 +234,8 @@
                 <div class="text-center">
                     <?php 
                     $score = $attempt['score'];
+                    $totalPoints = $attempt['total_points'] ?? $attempt['total_questions'] ?? 100;
+                    $pointsEarned = round(($score / 100) * $totalPoints);
                     $scoreAngle = ($score / 100) * 360;
                     $resultClass = $score >= 90 ? 'result-excellent' : 
                                   ($score >= 80 ? 'result-good' : 
@@ -241,8 +243,11 @@
                     ?>
                     <div class="score-circle <?= $resultClass ?>" style="--score-angle: <?= $scoreAngle ?>deg;">
                         <div class="score-text">
-                            <div class="sf-pro-display text-4xl font-bold" style="color: var(--score-color);">
-                                <?= $score ?>%
+                            <div class="sf-pro-display text-3xl font-bold" style="color: var(--score-color);">
+                                <?= $pointsEarned ?>/<?= $totalPoints ?>
+                            </div>
+                            <div class="text-sm text-gray-500 font-semibold mt-1">
+                                Points
                             </div>
                             <p class="text-gray-600 font-semibold">
                                 <?php
@@ -258,156 +263,70 @@
             </div>
         </div>
 
-        <!-- Statistics -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            <div class="stats-card p-6 animate-fade-in-up">
-                <div class="flex items-center">
-                    <div class="icon-container green-gradient mr-4">
-                        <i class="fas fa-check"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Correct</p>
-                        <p class="sf-pro-display text-2xl font-bold text-green-600">
-                            <?= $results['correct_answers'] ?? 0 ?>
-                        </p>
-                    </div>
-                </div>
+        <!-- Exam Completion Confirmation -->
+        <div class="ios-card p-8 mb-8 text-center animate-fade-in-up">
+            <div class="icon-container green-gradient mx-auto mb-4" style="width: 64px; height: 64px;">
+                <i class="fas fa-check-circle text-2xl"></i>
             </div>
-            
-            <div class="stats-card p-6 animate-fade-in-up animate-delay-100">
-                <div class="flex items-center">
-                    <div class="icon-container red-gradient mr-4">
-                        <i class="fas fa-times"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Incorrect</p>
-                        <p class="sf-pro-display text-2xl font-bold text-red-600">
-                            <?= $results['incorrect_answers'] ?? 0 ?>
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="stats-card p-6 animate-fade-in-up animate-delay-200">
-                <div class="flex items-center">
-                    <div class="icon-container orange-gradient mr-4">
-                        <i class="fas fa-question"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Unanswered</p>
-                        <p class="sf-pro-display text-2xl font-bold text-orange-600">
-                            <?= $results['unanswered'] ?? 0 ?>
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="stats-card p-6 animate-fade-in-up animate-delay-300">
-                <div class="flex items-center">
-                    <div class="icon-container blue-gradient mr-4">
-                        <i class="fas fa-star"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Points Earned</p>
-                        <p class="sf-pro-display text-2xl font-bold text-blue-600">
-                            <?= $results['points_earned'] ?? 0 ?>/<?= $exam['total_points'] ?? 0 ?>
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <h2 class="sf-pro-display text-2xl font-bold text-gray-800 mb-2">
+                Exam Submitted Successfully
+            </h2>
+            <p class="text-gray-600 font-medium">
+                Your answers have been recorded and will be reviewed by your instructor.
+            </p>
         </div>
 
-        <!-- Detailed Results -->
-        <?php if (!empty($results['questions'])): ?>
+        <!-- Additional Information -->
         <div class="ios-card p-8 animate-fade-in-up animate-delay-400">
-            <div class="flex items-center mb-8">
+            <div class="flex items-center mb-6">
                 <div class="icon-container blue-gradient mr-4">
-                    <i class="fas fa-list-alt"></i>
+                    <i class="fas fa-info-circle"></i>
                 </div>
                 <div>
                     <h2 class="sf-pro-display text-2xl font-bold text-gray-800">
-                        Question-by-Question Review
+                        What Happens Next?
                     </h2>
-                    <p class="text-gray-500 font-medium">Detailed breakdown of your answers</p>
+                    <p class="text-gray-500 font-medium">Information about your exam results</p>
                 </div>
             </div>
 
-            <div class="space-y-6">
-                <?php foreach ($results['questions'] as $index => $questionResult): ?>
-                    <div class="p-6 rounded-xl <?= $questionResult['is_correct'] ? 'answer-correct' : 'answer-incorrect' ?>">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="flex-1">
-                                <div class="flex items-center mb-3">
-                                    <span class="bg-white px-3 py-1 rounded-full text-sm font-semibold mr-3">
-                                        Question <?= $index + 1 ?>
-                                    </span>
-                                    <span class="text-sm text-gray-600">
-                                        <?= $questionResult['points'] ?> point<?= $questionResult['points'] !== 1 ? 's' : '' ?>
-                                    </span>
-                                </div>
-                                
-                                <h3 class="sf-pro-display text-lg font-semibold text-gray-800 mb-4">
-                                    <?= nl2br(htmlspecialchars($questionResult['question_text'])) ?>
-                                </h3>
-                            </div>
-                            
-                            <div class="text-center ml-4">
-                                <?php if ($questionResult['is_correct']): ?>
-                                    <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    <p class="text-sm font-semibold text-green-600 mt-2">Correct</p>
-                                <?php else: ?>
-                                    <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white">
-                                        <i class="fas fa-times"></i>
-                                    </div>
-                                    <p class="text-sm font-semibold text-red-600 mt-2">Incorrect</p>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h4 class="font-semibold text-gray-700 mb-2">Your Answer:</h4>
-                                <div class="bg-white p-3 rounded-lg">
-                                    <p class="text-gray-800">
-                                        <?= htmlspecialchars($questionResult['student_answer'] ?? 'No answer provided') ?>
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <?php if (!$questionResult['is_correct']): ?>
-                            <div>
-                                <h4 class="font-semibold text-gray-700 mb-2">Correct Answer:</h4>
-                                <div class="bg-green-50 p-3 rounded-lg border border-green-200">
-                                    <p class="text-green-800">
-                                        <?= htmlspecialchars($questionResult['correct_answer']) ?>
-                                    </p>
-                                </div>
-                            </div>
-                            <?php endif; ?>
-                        </div>
-
-                        <?php if (!empty($questionResult['explanation'])): ?>
-                        <div class="mt-4">
-                            <h4 class="font-semibold text-gray-700 mb-2">Explanation:</h4>
-                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                                <p class="text-blue-800">
-                                    <?= nl2br(htmlspecialchars($questionResult['explanation'])) ?>
-                                </p>
-                            </div>
-                        </div>
-                        <?php endif; ?>
+            <div class="space-y-4">
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-user-graduate text-blue-600 text-sm"></i>
                     </div>
-                <?php endforeach; ?>
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-1">Review Process</h3>
+                        <p class="text-gray-600">Your instructor will review your answers and provide feedback.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-clock text-green-600 text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-1">Results Timeline</h3>
+                        <p class="text-gray-600">Results will be available after your instructor completes the grading process.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-bell text-purple-600 text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-1">Notifications</h3>
+                        <p class="text-gray-600">You will be notified when your results are ready for viewing.</p>
+                    </div>
+                </div>
             </div>
         </div>
-        <?php endif; ?>
 
         <!-- Actions -->
         <div class="text-center py-8">
             <div class="space-x-4">
-                <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/student/dashboard" 
+                <a href="/student/dashboard" 
                    class="ios-button text-white px-8 py-3 rounded-xl font-semibold inline-block">
                     <i class="fas fa-home mr-2"></i>
                     Back to Dashboard

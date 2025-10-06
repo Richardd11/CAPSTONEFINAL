@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test True/False Frontend Fix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Test True/False Frontend Fix</h1>
+        
+        <!-- Simulate a true/false question card -->
+        <div class="question-card bg-white rounded-lg shadow-md p-6 mb-4" 
+             data-question-id="test-123" 
+             data-question-type="true_false">
+            
+            <h3 class="text-lg font-semibold mb-4">True/False Question Test</h3>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Question Text</label>
+                <textarea class="question-text w-full p-3 border border-gray-300 rounded-md" 
+                          rows="2">The Earth is round.</textarea>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Points</label>
+                <input type="number" class="question-points w-20 p-2 border border-gray-300 rounded-md" 
+                       value="10" min="1">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-3">Correct Answer</label>
+                <div class="space-y-3">
+                    <!-- TRUE Option -->
+                    <label class="cursor-pointer block">
+                        <input type="radio" 
+                               name="true_false_test-123" 
+                               value="true" 
+                               class="true-false-answer sr-only" 
+                               checked
+                               data-question-id="test-123">
+                        <div class="flex items-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 shadow-md rounded-xl transition-all duration-200">
+                            <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center mr-3">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-semibold text-green-800">True</div>
+                                <div class="text-xs text-green-600">This statement is correct</div>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <!-- FALSE Option -->
+                    <label class="cursor-pointer block">
+                        <input type="radio" 
+                               name="true_false_test-123" 
+                               value="false" 
+                               class="true-false-answer sr-only" 
+                               data-question-id="test-123">
+                        <div class="flex items-center p-4 bg-white border-2 border-gray-200 hover:border-red-300 hover:bg-red-50 rounded-xl transition-all duration-200">
+                            <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center mr-3">
+                                <i class="fas fa-times text-gray-400 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-semibold text-gray-700">False</div>
+                                <div class="text-xs text-gray-500">This statement is incorrect</div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Buttons -->
+        <div class="flex space-x-4 mb-6">
+            <button onclick="testCollection()" 
+                    class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                Test Data Collection
+            </button>
+            <button onclick="switchToFalse()" 
+                    class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
+                Switch to False
+            </button>
+            <button onclick="switchToTrue()" 
+                    class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+                Switch to True
+            </button>
+        </div>
+        
+        <!-- Results -->
+        <div id="results" class="bg-gray-50 p-4 rounded-md">
+            <h3 class="font-semibold mb-2">Test Results:</h3>
+            <div id="output">Click "Test Data Collection" to see results</div>
+        </div>
+    </div>
+
+    <script>
+        // Simulate the fixed collectTrueFalseAnswer function
+        function collectTrueFalseAnswer(questionElement) {
+            // Look for the checked radio button with class 'true-false-answer'
+            const checkedRadio = questionElement.querySelector('.true-false-answer:checked');
+            if (checkedRadio) {
+                console.log(`True/False question ${questionElement.dataset.questionId}: Found checked radio with value '${checkedRadio.value}'`);
+                return checkedRadio.value;
+            }
+            
+            // Fallback: look for any radio button and get the first one's value (shouldn't happen)
+            const anyRadio = questionElement.querySelector('.true-false-answer');
+            if (anyRadio) {
+                console.log(`True/False question ${questionElement.dataset.questionId}: No checked radio found, defaulting to 'true'`);
+                return 'true';
+            }
+            
+            console.log(`True/False question ${questionElement.dataset.questionId}: No radio buttons found, defaulting to 'true'`);
+            return 'true';
+        }
+        
+        function testCollection() {
+            const questionCard = document.querySelector('.question-card');
+            const result = collectTrueFalseAnswer(questionCard);
+            
+            const checkedRadio = questionCard.querySelector('.true-false-answer:checked');
+            const checkedValue = checkedRadio ? checkedRadio.value : 'none';
+            
+            document.getElementById('output').innerHTML = `
+                <strong>Collection Result:</strong> "${result}"<br>
+                <strong>Checked Radio Value:</strong> "${checkedValue}"<br>
+                <strong>Status:</strong> ${result === checkedValue ? '✅ CORRECT' : '❌ MISMATCH'}
+            `;
+        }
+        
+        function switchToFalse() {
+            const falseRadio = document.querySelector('.true-false-answer[value="false"]');
+            if (falseRadio) {
+                falseRadio.checked = true;
+                updateVisuals();
+            }
+        }
+        
+        function switchToTrue() {
+            const trueRadio = document.querySelector('.true-false-answer[value="true"]');
+            if (trueRadio) {
+                trueRadio.checked = true;
+                updateVisuals();
+            }
+        }
+        
+        function updateVisuals() {
+            const trueRadio = document.querySelector('.true-false-answer[value="true"]');
+            const falseRadio = document.querySelector('.true-false-answer[value="false"]');
+            const trueDiv = trueRadio.nextElementSibling;
+            const falseDiv = falseRadio.nextElementSibling;
+            
+            if (trueRadio.checked) {
+                trueDiv.className = 'flex items-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 shadow-md rounded-xl transition-all duration-200';
+                falseDiv.className = 'flex items-center p-4 bg-white border-2 border-gray-200 hover:border-red-300 hover:bg-red-50 rounded-xl transition-all duration-200';
+            } else {
+                trueDiv.className = 'flex items-center p-4 bg-white border-2 border-gray-200 hover:border-green-300 hover:bg-green-50 rounded-xl transition-all duration-200';
+                falseDiv.className = 'flex items-center p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 shadow-md rounded-xl transition-all duration-200';
+            }
+        }
+        
+        // Add event listeners to radio buttons
+        document.querySelectorAll('.true-false-answer').forEach(radio => {
+            radio.addEventListener('change', updateVisuals);
+        });
+    </script>
+</body>
+</html>

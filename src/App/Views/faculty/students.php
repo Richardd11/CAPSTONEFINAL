@@ -130,7 +130,7 @@
         <div class="container mx-auto px-6 relative z-10">
             <div class="flex justify-between items-center">
                 <div class="flex items-center">
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/dashboard" 
+                    <a href="/faculty/dashboard" 
                        class="mr-6 p-2 rounded-full hover:bg-white/20 transition-all duration-300 group">
                         <i class="fas fa-arrow-left text-xl group-hover:transform group-hover:-translate-x-1 transition-transform"></i>
                     </a>
@@ -349,80 +349,13 @@
                     <?php endforeach; ?>
                 </div>
 
-                <script>
-                // Search functionality
-                document.getElementById('studentSearch').addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase();
-                    const studentRows = document.querySelectorAll('.student-row');
-                    
-                    studentRows.forEach(row => {
-                        const name = row.dataset.name;
-                        const id = row.dataset.id;
-                        const matches = name.includes(searchTerm) || id.includes(searchTerm);
-                        row.style.display = matches ? '' : 'none';
-                    });
-                    
-                    // Hide empty groups
-                    updateGroupVisibility();
-                });
-
-                // Filter functionality
-                document.getElementById('yearFilter').addEventListener('change', filterStudents);
-                document.getElementById('sectionFilter').addEventListener('change', filterStudents);
-
-                function filterStudents() {
-                    const yearFilter = document.getElementById('yearFilter').value;
-                    const sectionFilter = document.getElementById('sectionFilter').value;
-                    const groups = document.querySelectorAll('.group-section');
-                    
-                    groups.forEach(group => {
-                        const groupYear = group.dataset.year;
-                        const groupSection = group.dataset.section;
-                        
-                        const yearMatch = !yearFilter || groupYear === yearFilter;
-                        const sectionMatch = !sectionFilter || groupSection === sectionFilter;
-                        
-                        group.style.display = (yearMatch && sectionMatch) ? '' : 'none';
-                    });
-                }
-
-                function updateGroupVisibility() {
-                    const groups = document.querySelectorAll('.group-section');
-                    
-                    groups.forEach(group => {
-                        const visibleRows = group.querySelectorAll('.student-row:not([style*="display: none"])');
-                        group.style.display = visibleRows.length > 0 ? '' : 'none';
-                    });
-                }
-
-                // Toggle group collapse
-                function toggleGroup(header) {
-                    const content = header.nextElementSibling;
-                    const icon = header.querySelector('.group-icon');
-                    
-                    if (content.style.display === 'none') {
-                        content.style.display = '';
-                        icon.style.transform = 'rotate(0deg)';
-                    } else {
-                        content.style.display = 'none';
-                        icon.style.transform = 'rotate(-90deg)';
-                    }
-                }
-
-                function exportSection(year, section) {
-                    console.log('Exporting section:', year, section);
-                    // Add export functionality here
-                }
-                </script>
             <?php endif; ?>
         </div>
     </div>
 
     <!-- Removed redundant modals - now redirecting to exam results page -->
 
-    <script>
-        // Removed redundant modal functions - now redirecting to exam results page
-        // All student interactions now redirect to the exam results page for score analytics
-    </script>
+    <!-- MVC Controller -->
+    <script src="/js/controllers/faculty/FacultyStudentsController.js"></script>
 </body>
 </html>

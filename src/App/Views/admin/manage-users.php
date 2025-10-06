@@ -31,29 +31,6 @@
             <i class="fas fa-chalkboard-teacher mr-2"></i>Faculty
         </button>
     </div>
-    <script>
-    function showUsersSubtab(which) {
-        var studentsBtn = document.getElementById('students-subtab-btn');
-        var facultyBtn = document.getElementById('faculty-subtab-btn');
-        var studentsTab = document.getElementById('students-subtab');
-        var facultyTab = document.getElementById('faculty-subtab');
-        if (which === 'students') {
-            studentsTab.classList.remove('hidden');
-            facultyTab.classList.add('hidden');
-            studentsBtn.classList.add('bg-primary-600','text-white');
-            studentsBtn.classList.remove('bg-white','text-grey-700','border','border-grey-300');
-            facultyBtn.classList.remove('bg-primary-600','text-white');
-            facultyBtn.classList.add('bg-white','text-grey-700','border','border-grey-300');
-        } else {
-            facultyTab.classList.remove('hidden');
-            studentsTab.classList.add('hidden');
-            facultyBtn.classList.add('bg-primary-600','text-white');
-            facultyBtn.classList.remove('bg-white','text-grey-700','border','border-grey-300');
-            studentsBtn.classList.remove('bg-primary-600','text-white');
-            studentsBtn.classList.add('bg-white','text-grey-700','border','border-grey-300');
-        }
-    }
-    </script>
 </div>
 
 <!-- Students Section - Organized by Year & Section -->
@@ -200,162 +177,11 @@
 </div>
 
 <script>
-// Build student map for quick lookup and Edit auto-populate
+// Initialize user data from PHP
 const studentsData = <?= json_encode($students ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-const studentIdToStudent = Object.fromEntries((studentsData || []).map(function(s){ return [String(s.user_id), s]; }));
-
-// Build faculty map for quick lookup and Edit auto-populate
 const facultyData = <?= json_encode($faculty ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-const facultyIdToFaculty = Object.fromEntries((facultyData || []).map(function(f){ return [String(f.user_id), f]; }));
+</script>
 
-// Edit Student Function with auto-populate
-function editStudent(studentId) {
-    var student = studentIdToStudent[String(studentId)];
-    if (student) {
-        document.getElementById('editStudentId').value = student.user_id;
-        document.getElementById('edit_school_id').value = student.school_id || '';
-        document.getElementById('edit_full_name').value = student.full_name || '';
-        document.getElementById('edit_year_level').value = student.year_level || '';
-        document.getElementById('edit_section').value = student.section || '';
-    } else {
-        document.getElementById('editStudentId').value = studentId;
-    }
-    document.getElementById('editStudentModal').classList.remove('hidden');
-}
-
-// Show Edit Student Modal
-function showEditStudentModal(studentId) {
-    document.getElementById('editStudentModal').classList.remove('hidden');
-    document.getElementById('editStudentId').value = studentId;
-}
-
-// Delete Student Confirmation Modal flow
-let pendingDeleteStudentId = null;
-function deleteStudent(studentId) {
-    pendingDeleteStudentId = studentId;
-    document.getElementById('deleteStudentModal').classList.remove('hidden');
-}
-function cancelDeleteStudent() {
-    pendingDeleteStudentId = null;
-    document.getElementById('deleteStudentModal').classList.add('hidden');
-}
-function confirmDeleteStudent() {
-    if (!pendingDeleteStudentId) return;
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/users/delete-student';
-    const userIdInput = document.createElement('input');
-    userIdInput.type = 'hidden';
-    userIdInput.name = 'user_id';
-    userIdInput.value = pendingDeleteStudentId;
-    form.appendChild(userIdInput);
-    document.body.appendChild(form);
-    form.submit();
-}
-
-// Edit Faculty Function with auto-populate
-function editFaculty(facultyId) {
-    var faculty = facultyIdToFaculty[String(facultyId)];
-    if (faculty) {
-        document.getElementById('editFacultyId').value = faculty.user_id;
-        document.getElementById('edit_faculty_school_id').value = faculty.school_id || '';
-        document.getElementById('edit_faculty_full_name').value = faculty.full_name || '';
-    } else {
-        document.getElementById('editFacultyId').value = facultyId;
-    }
-    document.getElementById('editFacultyModal').classList.remove('hidden');
-}
-
-// Show Edit Faculty Modal
-function showEditFacultyModal(facultyId) {
-    document.getElementById('editFacultyModal').classList.remove('hidden');
-    document.getElementById('editFacultyId').value = facultyId;
-}
-
-// Delete Faculty Functions
-let pendingDeleteFacultyId = null;
-
-function deleteFaculty(facultyId) {
-    pendingDeleteFacultyId = facultyId;
-    document.getElementById('deleteFacultyModal').classList.remove('hidden');
-}
-
-function cancelDeleteFaculty() {
-    pendingDeleteFacultyId = null;
-    document.getElementById('deleteFacultyModal').classList.add('hidden');
-}
-
-function confirmDeleteFaculty() {
-    if (!pendingDeleteFacultyId) return;
-    
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/users/delete-faculty';
-    
-    const userIdInput = document.createElement('input');
-    userIdInput.type = 'hidden';
-    userIdInput.name = 'user_id';
-    userIdInput.value = pendingDeleteFacultyId;
-    
-    form.appendChild(userIdInput);
-    document.body.appendChild(form);
-    form.submit();
-}
-
-// Add Student Modal
-function showAddStudentModal() {
-    document.getElementById('addStudentModal').classList.remove('hidden');
-}
-
-// Close Modal
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
-}
-
-// Reset Form Fields
-function resetForm(formId) {
-    document.getElementById(formId).reset();
-}
-
-// Add Faculty Modal
-function showAddFacultyModal() {
-    document.getElementById('addFacultyModal').classList.remove('hidden');
-}
-
-// Year-Section Tab Switching
-document.addEventListener('DOMContentLoaded', function() {
-    const yearSectionTabs = document.querySelectorAll('.year-section-tab');
-    const studentSections = document.querySelectorAll('.student-section');
-
-    yearSectionTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            const targetSection = this.getAttribute('data-section');
-            
-            // Update active tab
-            yearSectionTabs.forEach(t => {
-                t.classList.remove('active', 'bg-primary-600', 'text-white', 'border-primary-600');
-                t.classList.add('bg-grey-100', 'text-grey-600', 'border-grey-300');
-            });
-            this.classList.add('active', 'bg-primary-600', 'text-white', 'border-primary-600');
-            this.classList.remove('bg-grey-100', 'text-grey-600', 'border-grey-300');
-            
-            // Show/hide sections
-            studentSections.forEach(section => {
-                if (section.id === targetSection) {
-                    section.classList.remove('hidden');
-                } else {
-                    section.classList.add('hidden');
-                }
-            });
-        });
-    });
-
-         // Show first section by default
-     if (yearSectionTabs.length > 0) {
-         yearSectionTabs[0].click();
-     }
- });
- </script>
 
 <!-- Edit Student Modal -->
 <div id="editStudentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
@@ -370,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <!-- Modal Body -->
         <div class="p-6">
-            <form id="editStudentForm" action="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/users/edit-student" method="POST">
+            <form id="editStudentForm" action="/admin/users/edit-student" method="POST">
                 <input type="hidden" id="editStudentId" name="user_id">
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -431,33 +257,6 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<script>
-// Submit edit form function
-function submitEditForm() {
-    const form = document.getElementById('editStudentForm');
-    if (form.checkValidity()) {
-        // Submit form to controller
-        form.submit();
-        // Close modal after submission
-        setTimeout(() => {
-            closeModal('editStudentModal');
-        }, 100);
-    } else {
-        // Show validation errors
-        form.reportValidity();
-    }
-}
-
-// Close edit modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
-    const editModal = document.getElementById('editStudentModal');
-    editModal.addEventListener('click', function(e) {
-        if (e.target === editModal) {
-            closeModal('editStudentModal');
-        }
-    });
-});
-</script>
 
 <!-- Delete Faculty Confirmation Modal -->
 <div id="deleteFacultyModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50">
@@ -475,12 +274,6 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
     </div>
-    <script>
-    (function(){
-        var modal = document.getElementById('deleteFacultyModal');
-        modal.addEventListener('click', function(e){ if (e.target === modal) cancelDeleteFaculty(); });
-    })();
-    </script>
 </div>
 
 <!-- Delete Student Confirmation Modal -->
@@ -499,12 +292,6 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
     </div>
-    <script>
-    (function(){
-        var modal = document.getElementById('deleteStudentModal');
-        modal.addEventListener('click', function(e){ if (e.target === modal) cancelDeleteStudent(); });
-    })();
-    </script>
 </div>
 
 <!-- Add Student Modal -->
@@ -520,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <!-- Modal Body -->
         <div class="p-6">
-            <form id="addStudentForm" action="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/users/add-student" method="POST" onsubmit="handleFormSubmit(event)">
+            <form id="addStudentForm" action="/admin/users/add-student" method="POST" onsubmit="handleFormSubmit(event)">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label for="school_id" class="block text-sm font-medium text-grey-700 mb-2">School ID *</label>
@@ -586,40 +373,6 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<script>
-// Handle form submission
-function handleFormSubmit(event) {
-    // Form will submit normally to controller
-    // Controller will handle validation and redirect
-}
-
-// Submit form function
-function submitForm() {
-    const form = document.getElementById('addStudentForm');
-    if (form.checkValidity()) {
-        // Submit form to controller
-        form.submit();
-        // Reset form fields after submission
-        setTimeout(() => {
-            resetForm('addStudentForm');
-            closeModal('addStudentModal');
-        }, 100);
-    } else {
-        // Show validation errors
-        form.reportValidity();
-    }
-}
-
-// Close modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('addStudentModal');
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            closeModal('addStudentModal');
-        }
-    });
-});
-</script>
 
 <!-- Edit Faculty Modal -->
 <div id="editFacultyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
@@ -634,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <!-- Modal Body -->
         <div class="p-6">
-            <form id="editFacultyForm" action="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/users/edit-faculty" method="POST">
+            <form id="editFacultyForm" action="/admin/users/edit-faculty" method="POST">
                 <input type="hidden" id="editFacultyId" name="user_id">
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -670,33 +423,6 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<script>
-// Submit edit faculty form function
-function submitEditFacultyForm() {
-    const form = document.getElementById('editFacultyForm');
-    if (form.checkValidity()) {
-        // Submit form to controller
-        form.submit();
-        // Close modal after submission
-        setTimeout(() => {
-            closeModal('editFacultyModal');
-        }, 100);
-    } else {
-        // Show validation errors
-        form.reportValidity();
-    }
-}
-
-// Close edit faculty modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
-    const editFacultyModal = document.getElementById('editFacultyModal');
-    editFacultyModal.addEventListener('click', function(e) {
-        if (e.target === editFacultyModal) {
-            closeModal('editFacultyModal');
-        }
-    });
-});
-</script>
 
 <!-- Add Faculty Modal -->
 <div id="addFacultyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
@@ -711,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <!-- Modal Body -->
         <div class="p-6">
-            <form id="addFacultyForm" action="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/users/add-faculty" method="POST" onsubmit="handleFacultyFormSubmit(event)">
+            <form id="addFacultyForm" action="/admin/users/add-faculty" method="POST" onsubmit="handleFacultyFormSubmit(event)">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label for="faculty_school_id" class="block text-sm font-medium text-grey-700 mb-2">School ID *</label>
@@ -753,37 +479,17 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<script>
-// Handle faculty form submission
-function handleFacultyFormSubmit(event) {
-    // Form will submit normally to controller
-    // Controller will handle validation and redirect
-}
 
-// Submit faculty form function
-function submitFacultyForm() {
-    const form = document.getElementById('addFacultyForm');
-    if (form.checkValidity()) {
-        // Submit form to controller
-        form.submit();
-        // Reset form fields after submission
-        setTimeout(() => {
-            resetForm('addFacultyForm');
-            closeModal('addFacultyModal');
-        }, 100);
-    } else {
-        // Show validation errors
-        form.reportValidity();
-    }
-}
+<!-- Load MVC Architecture for User Management -->
+<!-- Services -->
+<script src="/js/services/APIService.js"></script>
+<script src="/js/services/UserManagementService.js"></script>
 
-// Close faculty modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('addFacultyModal');
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            closeModal('addFacultyModal');
-        }
-    });
-});
-</script>
+<!-- Models -->
+<script src="/js/models/User.js"></script>
+
+<!-- Controllers -->
+<script src="/js/controllers/ManageUsersController.js"></script>
+
+<!-- Initialize MVC and expose global functions -->
+<script src="/js/manage-users-mvc.js"></script>

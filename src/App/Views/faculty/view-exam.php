@@ -44,7 +44,7 @@
         <div class="container mx-auto px-6">
             <div class="flex justify-between items-center">
                 <div class="flex items-center">
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exams" 
+                    <a href="/faculty/exams" 
                        class="mr-6 p-2 rounded-full hover:bg-white/20 transition-all duration-300 group">
                         <i class="fas fa-arrow-left text-xl group-hover:transform group-hover:-translate-x-1 transition-transform"></i>
                     </a>
@@ -56,7 +56,7 @@
                     </div>
                 </div>
                 <div class="flex space-x-4">
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exam/<?= $exam->getId() ?>/edit" 
+                    <a href="/faculty/exam/<?= $exam->getId() ?>/edit" 
                        class="bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/20">
                         <i class="fas fa-edit mr-2"></i>Edit Exam
                     </a>
@@ -143,7 +143,7 @@
                     <i class="fas fa-question-circle text-6xl text-gray-400 mb-4"></i>
                     <h3 class="text-xl font-semibold text-gray-700 mb-2">No Questions Added</h3>
                     <p class="text-gray-500 mb-4">This exam doesn't have any questions yet.</p>
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exam/<?= $exam->getId() ?>/edit" 
+                    <a href="/faculty/exam/<?= $exam->getId() ?>/edit" 
                        class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors">
                         <i class="fas fa-plus mr-2"></i>Add Questions
                     </a>
@@ -200,8 +200,23 @@
                                     </div>
                                 <?php endif; ?>
                             <?php elseif ($question->getQuestionType() === 'true_false'): ?>
-                                <div class="text-sm text-gray-600">
-                                    <strong>Answer:</strong> True/False question
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <i class="fas fa-check-circle text-blue-600"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-semibold text-gray-700">Correct Answer</div>
+                                                <div class="text-lg font-bold text-blue-800">
+                                                    <?= ucfirst(htmlspecialchars($question->getCorrectAnswer() ?? 'true')) ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                                            True/False
+                                        </div>
+                                    </div>
                                 </div>
                             <?php elseif ($question->getQuestionType() === 'essay'): ?>
                                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">

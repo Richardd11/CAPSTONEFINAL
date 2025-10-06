@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Update Fix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-2xl font-bold mb-6">🔧 Test Update Fix</h1>
+            
+            <div class="space-y-4">
+                <button onclick="testUpdateFix()" 
+                        class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700">
+                    Test Exam Update Fix
+                </button>
+                
+                <div id="result" class="p-4 rounded-lg hidden"></div>
+            </div>
+            
+            <div class="mt-6">
+                <h3 class="font-bold mb-2">Debug Log:</h3>
+                <div id="log" class="bg-black text-green-400 p-4 rounded font-mono text-sm h-64 overflow-y-auto">
+                    Ready to test...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function testUpdateFix() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'p-4 rounded-lg';
+            
+            try {
+                log('🚀 Starting update fix test...');
+                
+                // Step 1: Get exam list to find an exam to update
+                log('📋 Getting exam list...');
+                const listResponse = await fetch('/faculty/exams');
+                const html = await listResponse.text();
+                
+                const examMatch = html.match(/data-exam-id="(\d+)"/);
+                if (!examMatch) {
+                    throw new Error('No exams found');
+                }
+                
+                const examId = examMatch[1];
+                log(`✅ Found exam ID: ${examId}`);
+                
+                // Step 2: Test the update with proper exam_id
+                log('🔄 Testing update with exam_id...');
+                
+                const updateData = {
+                    exam_id: examId, // CRITICAL: This should trigger updateExam, not createExam
+                    title: 'TEST UPDATE - ' + new Date().toLocaleTimeString(),
+                    description: 'Testing the update fix',
+                    subject_id: 1,
+                    exam_type: 'quiz',
+                    time_limit: 60,
+                    is_active: 1,
+                    instructions: 'Test instructions',
+                    year_level: '1st Year',
+                    section: 'A',
+                    academic_year: '2024-2025',
+                    semester: '1st Semester',
+                    questions: []
+                };
+                
+                log('📤 Sending update request...');
+                log(`   Endpoint: /faculty/save-exam`);
+                log(`   Exam ID: ${examId}`);
+                
+                const updateResponse = await fetch('/faculty/save-exam', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                log(`📡 Response status: ${updateResponse.status}`);
+                
+                if (updateResponse.ok) {
+                    const result = await updateResponse.json();
+                    log('✅ Update successful!');
+                    log(`   Result: ${JSON.stringify(result)}`);
+                    
+                    resultDiv.innerHTML = `
+                        <div class="text-green-800 bg-green-100 p-4 rounded">
+                            <h3 class="font-bold">✅ SUCCESS!</h3>
+                            <p>Update fix is working. Check if exam was updated (not duplicated).</p>
+                            <p><strong>Result:</strong> ${JSON.stringify(result, null, 2)}</p>
+                        </div>
+                    `;
+                    resultDiv.classList.remove('hidden');
+                } else {
+                    const errorText = await updateResponse.text();
+                    throw new Error(`Update failed: ${errorText}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`);
+                
+                resultDiv.innerHTML = `
+                    <div class="text-red-800 bg-red-100 p-4 rounded">
+                        <h3 class="font-bold">❌ ERROR</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                resultDiv.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

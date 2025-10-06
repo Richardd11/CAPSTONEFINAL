@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Exam Update Issue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">
+                <i class="fas fa-bug mr-3 text-red-600"></i>
+                Debug Exam Update Issue
+            </h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Test Controls -->
+                <div class="bg-blue-50 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-blue-800 mb-4">Test Controls</h2>
+                    <div class="space-y-3">
+                        <button onclick="testExamList()" 
+                                class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-list mr-2"></i>Get Exam List
+                        </button>
+                        <button onclick="testExamUpdate()" 
+                                class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700">
+                            <i class="fas fa-edit mr-2"></i>Test Exam Update
+                        </button>
+                        <button onclick="clearLog()" 
+                                class="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700">
+                            <i class="fas fa-trash mr-2"></i>Clear Log
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Status -->
+                <div class="bg-green-50 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-green-800 mb-4">Status</h2>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span>Server:</span>
+                            <span id="serverStatus" class="font-bold text-green-600">Checking...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Last Test:</span>
+                            <span id="lastTest" class="font-bold">None</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Result:</span>
+                            <span id="testResult" class="font-bold">Pending</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debug Log -->
+            <div class="bg-gray-900 rounded-lg p-6">
+                <h2 class="text-xl font-semibold text-white mb-4">
+                    <i class="fas fa-terminal mr-2"></i>Debug Log
+                </h2>
+                <div id="debugLog" class="bg-black text-green-400 p-4 rounded font-mono text-sm h-96 overflow-y-auto">
+                    <div class="text-gray-500">Debug log will appear here...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logging
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: 'text-blue-400',
+                success: 'text-green-400',
+                error: 'text-red-400',
+                warning: 'text-yellow-400'
+            };
+            
+            const logElement = document.getElementById('debugLog');
+            const entry = document.createElement('div');
+            entry.className = colors[type] || 'text-gray-400';
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '<div class="text-gray-500">Debug log cleared...</div>';
+        }
+
+        // Test server connection
+        async function checkServer() {
+            try {
+                const response = await fetch('/');
+                if (response.ok) {
+                    document.getElementById('serverStatus').textContent = 'Online';
+                    document.getElementById('serverStatus').className = 'font-bold text-green-600';
+                    log('✅ Server is online', 'success');
+                } else {
+                    throw new Error('Server responded with error');
+                }
+            } catch (error) {
+                document.getElementById('serverStatus').textContent = 'Offline';
+                document.getElementById('serverStatus').className = 'font-bold text-red-600';
+                log('❌ Server is offline: ' + error.message, 'error');
+            }
+        }
+
+        // Test exam list
+        async function testExamList() {
+            document.getElementById('lastTest').textContent = 'Exam List';
+            log('🔍 Testing exam list retrieval...', 'info');
+            
+            try {
+                const response = await fetch('/faculty/exams');
+                log('📡 Response status: ' + response.status, 'info');
+                
+                if (response.ok) {
+                    const html = await response.text();
+                    log('✅ Exam list retrieved successfully', 'success');
+                    
+                    // Try to extract exam data from the HTML
+                    const examMatches = html.match(/data-exam-id="(\d+)"/g);
+                    if (examMatches) {
+                        log('📋 Found exams: ' + examMatches.length, 'success');
+                        examMatches.forEach((match, index) => {
+                            const examId = match.match(/\d+/)[0];
+                            log(`   Exam ${index + 1}: ID ${examId}`, 'info');
+                        });
+                    } else {
+                        log('⚠️ No exams found in response', 'warning');
+                    }
+                    
+                    document.getElementById('testResult').textContent = 'Success';
+                    document.getElementById('testResult').className = 'font-bold text-green-600';
+                } else {
+                    throw new Error('Failed to get exam list');
+                }
+            } catch (error) {
+                log('❌ Error getting exam list: ' + error.message, 'error');
+                document.getElementById('testResult').textContent = 'Failed';
+                document.getElementById('testResult').className = 'font-bold text-red-600';
+            }
+        }
+
+        // Test exam update
+        async function testExamUpdate() {
+            document.getElementById('lastTest').textContent = 'Exam Update';
+            log('🔍 Testing exam update process...', 'info');
+            
+            // First, let's try to get an exam ID from the list
+            try {
+                log('📋 Step 1: Getting exam list to find an exam to update...', 'info');
+                const listResponse = await fetch('/faculty/exams');
+                const html = await listResponse.text();
+                
+                const examMatch = html.match(/data-exam-id="(\d+)"/);
+                if (!examMatch) {
+                    log('❌ No exams found to update', 'error');
+                    return;
+                }
+                
+                const examId = examMatch[1];
+                log('✅ Found exam ID: ' + examId, 'success');
+                
+                // Step 2: Get the edit page to see existing data
+                log('📋 Step 2: Getting exam edit page...', 'info');
+                const editResponse = await fetch(`/faculty/exam/${examId}/edit`);
+                const editHtml = await editResponse.text();
+                
+                // Extract existing exam data
+                const existingDataMatch = editHtml.match(/window\.existingExamData = ({[^;]+});/);
+                if (existingDataMatch) {
+                    const existingData = JSON.parse(existingDataMatch[1]);
+                    log('✅ Existing exam data found:', 'success');
+                    log('   Title: ' + existingData.title, 'info');
+                    log('   Year Level: ' + existingData.year_level, 'info');
+                    log('   Section: ' + existingData.section, 'info');
+                    log('   Subject ID: ' + existingData.subject_id, 'info');
+                    
+                    // Step 3: Simulate an update
+                    log('📋 Step 3: Simulating exam update...', 'info');
+                    
+                    const updateData = {
+                        exam_id: examId,
+                        title: existingData.title + ' (UPDATED)',
+                        description: existingData.description,
+                        subject_id: existingData.subject_id,
+                        exam_type: existingData.exam_type,
+                        time_limit: existingData.time_limit,
+                        start_date: existingData.start_date,
+                        end_date: existingData.end_date,
+                        is_active: existingData.is_active ? 1 : 0,
+                        instructions: existingData.instructions,
+                        year_level: existingData.year_level,
+                        section: existingData.section,
+                        academic_year: existingData.academic_year,
+                        semester: existingData.semester,
+                        questions: []
+                    };
+                    
+                    log('📤 Sending update request...', 'info');
+                    log('   Endpoint: /faculty/exam/' + examId + '/update', 'info');
+                    log('   Data: ' + JSON.stringify(updateData, null, 2), 'info');
+                    
+                    const updateResponse = await fetch(`/faculty/exam/${examId}/update`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(updateData)
+                    });
+                    
+                    log('📡 Update response status: ' + updateResponse.status, 'info');
+                    
+                    if (updateResponse.ok) {
+                        const result = await updateResponse.json();
+                        log('✅ Update successful!', 'success');
+                        log('   Result: ' + JSON.stringify(result, null, 2), 'success');
+                        
+                        document.getElementById('testResult').textContent = 'Success';
+                        document.getElementById('testResult').className = 'font-bold text-green-600';
+                    } else {
+                        const errorText = await updateResponse.text();
+                        log('❌ Update failed: ' + errorText, 'error');
+                        
+                        document.getElementById('testResult').textContent = 'Failed';
+                        document.getElementById('testResult').className = 'font-bold text-red-600';
+                    }
+                } else {
+                    log('❌ Could not extract existing exam data from edit page', 'error');
+                }
+                
+            } catch (error) {
+                log('❌ Error during exam update test: ' + error.message, 'error');
+                document.getElementById('testResult').textContent = 'Error';
+                document.getElementById('testResult').className = 'font-bold text-red-600';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Debug tool initialized', 'info');
+            checkServer();
+        });
+    </script>
+</body>
+</html>

@@ -12,6 +12,7 @@ class Question
     private $orderIndex;
     private $isRequired;
     private $explanation;
+    private $correctAnswer; // For true_false and other question types
     private $createdAt;
     private $updatedAt;
     
@@ -38,6 +39,7 @@ class Question
         $this->orderIndex = $data['order_index'] ?? 0;
         $this->isRequired = $data['is_required'] ?? true;
         $this->explanation = $data['explanation'] ?? '';
+        $this->correctAnswer = $data['correct_answer'] ?? null;
         $this->createdAt = $data['created_at'] ?? null;
         $this->updatedAt = $data['updated_at'] ?? null;
     }
@@ -51,6 +53,7 @@ class Question
     public function getOrderIndex() { return $this->orderIndex; }
     public function getIsRequired() { return $this->isRequired; }
     public function getExplanation() { return $this->explanation; }
+    public function getCorrectAnswer() { return $this->correctAnswer; }
     public function getCreatedAt() { return $this->createdAt; }
     public function getUpdatedAt() { return $this->updatedAt; }
 
@@ -63,6 +66,7 @@ class Question
     public function setOrderIndex($orderIndex) { $this->orderIndex = $orderIndex; }
     public function setIsRequired($isRequired) { $this->isRequired = $isRequired; }
     public function setExplanation($explanation) { $this->explanation = $explanation; }
+    public function setCorrectAnswer($correctAnswer) { $this->correctAnswer = $correctAnswer; }
 
     /**
      * Validate question data
@@ -110,6 +114,7 @@ class Question
             'order_index' => $this->orderIndex,
             'is_required' => $this->isRequired,
             'explanation' => $this->explanation,
+            'correct_answer' => $this->correctAnswer,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt
         ];

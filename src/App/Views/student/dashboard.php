@@ -406,7 +406,7 @@
                             </div>
                             
                             <div class="flex space-x-3">
-                                <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/student/exam/<?= $exam['id'] ?>" 
+                                <a href="/student/exam/<?= $exam['id'] ?>" 
                                    class="ios-button flex-1 text-center text-white font-semibold">
                                     <i class="fas fa-play mr-2"></i>
                                     Start Exam
@@ -662,7 +662,7 @@
             logoutBtn.disabled = true;
             
             // Redirect to logout
-            window.location.href = '<?= dirname($_SERVER['SCRIPT_NAME']) ?>/student/logout';
+            window.location.href = '/student/logout';
         }
         
         // Close modal on Escape key

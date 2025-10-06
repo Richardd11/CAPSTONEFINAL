@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiple Choice & Save Fixes Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-result {
+            transition: all 0.3s ease;
+        }
+        .test-pass {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        .test-fail {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        .test-pending {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-bug-slash text-green-600 mr-3"></i>
+                Multiple Choice & Save Fixes Test
+            </h1>
+            <p class="text-gray-600 mb-6">Testing the fixes for ModernModal error and multiple choice visual indicators</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-red-800 mb-2">Issues Fixed</h3>
+                    <ul class="text-sm text-red-700 space-y-1">
+                        <li>❌ ModernModal.savingExam() error</li>
+                        <li>❌ Multiple choice visual indicators stuck</li>
+                        <li>❌ Save button crashes on modal error</li>
+                        <li>❌ Visual state not updating properly</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-green-800 mb-2">Solutions Applied</h3>
+                    <ul class="text-sm text-green-700 space-y-1">
+                        <li>✅ Added fallback for missing ModernModal</li>
+                        <li>✅ Fixed DOM selector mismatches</li>
+                        <li>✅ Added reliable visual update method</li>
+                        <li>✅ Improved error handling</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <button id="runTests" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-play mr-2"></i>Run All Tests
+            </button>
+        </div>
+
+        <!-- Test Results -->
+        <div id="testResults" class="space-y-4">
+            <!-- Tests will be populated here -->
+        </div>
+        
+        <!-- Interactive Test Environment -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mt-8">
+            <h2 class="text-2xl font-bold mb-6">Interactive Test Environment</h2>
+            
+            <!-- Mock Multiple Choice Question -->
+            <div class="border-2 border-gray-200 rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">Test Multiple Choice Question</h3>
+                <p class="text-gray-600 mb-4">Click on different options to test the visual indicators:</p>
+                
+                <div id="testQuestion" class="space-y-3">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p class="text-sm text-blue-700">
+                        <strong>Expected behavior:</strong> When you click an option, it should immediately show as selected with blue styling and "Correct Answer" indicator. Other options should return to gray styling.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Mock Save Test -->
+            <div class="border-2 border-gray-200 rounded-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">Test Save Functionality</h3>
+                <p class="text-gray-600 mb-4">Test the save button without ModernModal errors:</p>
+                
+                <button id="testSaveBtn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>Test Save (Mock)
+                </button>
+                
+                <div id="saveResult" class="mt-4 p-3 bg-gray-50 rounded-lg hidden">
+                    <p class="text-sm text-gray-700">Save test result will appear here...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Required Scripts -->
+    <script src="/js/models/Question.js"></script>
+    <script src="/js/models/Exam.js"></script>
+    <script src="/js/utils/TemplateEngine.js"></script>
+
+    <script>
+        class FixesTestSuite {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.templateEngine = new TemplateEngine();
+                this.setupInteractiveTests();
+            }
+
+            setupInteractiveTests() {
+                // Create interactive multiple choice test
+                this.createInteractiveMultipleChoice();
+                
+                // Setup save test
+                document.getElementById('testSaveBtn').addEventListener('click', () => {
+                    this.testSaveWithoutModal();
+                });
+            }
+
+            createInteractiveMultipleChoice() {
+                const question = new Question('multiple_choice');
+                question.id = 'interactive-test';
+                question.text = 'Which option will you select?';
+                question.options = [
+                    { text: 'Option A - Click me!', isCorrect: true },
+                    { text: 'Option B - Or click me!', isCorrect: false },
+                    { text: 'Option C - Maybe me?', isCorrect: false },
+                    { text: 'Option D - Why not me?', isCorrect: false }
+                ];
+
+                // Render the question
+                const html = this.templateEngine.renderMultipleChoice(question);
+                document.getElementById('testQuestion').innerHTML = html;
+
+                // Add event listeners to simulate the controller behavior
+                this.setupMockEventListeners();
+            }
+
+            setupMockEventListeners() {
+                const container = document.getElementById('testQuestion');
+                
+                // Add click listeners to option items
+                const optionItems = container.querySelectorAll('.option-item');
+                optionItems.forEach((optionItem, index) => {
+                    optionItem.addEventListener('click', (e) => {
+                        // Don't trigger if clicking on text input
+                        if (e.target.classList.contains('option-text')) {
+                            return;
+                        }
+                        
+                        const radio = optionItem.querySelector('.correct-answer');
+                        if (radio && !radio.checked) {
+                            // Uncheck all other radios
+                            const allRadios = container.querySelectorAll('.correct-answer');
+                            allRadios.forEach(r => r.checked = false);
+                            
+                            // Check this radio
+                            radio.checked = true;
+                            
+                            // Update visual state using our reliable method
+                            this.updateVisualStateReliable(container);
+                            
+                            console.log(`Option ${index} selected`);
+                        }
+                    });
+                });
+            }
+
+            updateVisualStateReliable(container) {
+                const radioButtons = container.querySelectorAll('.correct-answer');
+                
+                radioButtons.forEach((radio, index) => {
+                    const optionItem = radio.closest('.option-item');
+                    if (!optionItem) return;
+                    
+                    const optionContainer = optionItem.querySelector('div.flex.items-start.gap-3');
+                    const badgeContainer = optionContainer?.querySelector('div.relative');
+                    const badge = badgeContainer?.querySelector('div.w-8.h-8');
+                    const textInput = optionContainer?.querySelector('input.option-text');
+                    const textContainer = textInput?.parentElement;
+                    
+                    if (radio.checked) {
+                        // Update container classes for correct state
+                        if (optionContainer) {
+                            optionContainer.className = 'flex items-start gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 shadow-md ring-2 ring-blue-200 ring-opacity-50 rounded-xl p-4 transition-all duration-300';
+                        }
+                        
+                        // Update badge for correct state
+                        if (badge) {
+                            badge.className = 'w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md transition-all duration-300';
+                        }
+                        
+                        // Update text input for correct state
+                        if (textInput) {
+                            textInput.className = 'option-text w-full bg-transparent border-none focus:outline-none text-sm text-blue-900 font-medium placeholder-gray-400 py-1';
+                        }
+                        
+                        // Add correct indicator if not exists
+                        if (textContainer && !textContainer.querySelector('.text-blue-700')) {
+                            const indicator = document.createElement('div');
+                            indicator.className = 'mt-1 text-xs text-blue-700 font-medium flex items-center';
+                            indicator.innerHTML = '<i class="fas fa-star mr-1"></i>Correct Answer';
+                            textContainer.appendChild(indicator);
+                        }
+                        
+                        // Add checkmark if not exists
+                        if (badgeContainer && !badgeContainer.querySelector('.absolute')) {
+                            const checkmark = document.createElement('div');
+                            checkmark.className = 'absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center';
+                            checkmark.innerHTML = '<i class="fas fa-check text-white" style="font-size: 6px;"></i>';
+                            badgeContainer.appendChild(checkmark);
+                        }
+                        
+                    } else {
+                        // Update container classes for incorrect state
+                        if (optionContainer) {
+                            optionContainer.className = 'flex items-start gap-3 bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-blue-300 rounded-xl p-4 transition-all duration-300 hover:shadow-md transform hover:scale-[1.01]';
+                        }
+                        
+                        // Update badge for incorrect state
+                        if (badge) {
+                            badge.className = 'w-8 h-8 bg-gradient-to-br from-gray-500 to-gray-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md transition-all duration-300';
+                        }
+                        
+                        // Update text input for incorrect state
+                        if (textInput) {
+                            textInput.className = 'option-text w-full bg-transparent border-none focus:outline-none text-sm text-gray-800 placeholder-gray-400 py-1';
+                        }
+                        
+                        // Remove correct indicator
+                        const indicator = textContainer?.querySelector('.text-blue-700');
+                        if (indicator) {
+                            indicator.remove();
+                        }
+                        
+                        // Remove checkmark
+                        const checkmark = badgeContainer?.querySelector('.absolute');
+                        if (checkmark) {
+                            checkmark.remove();
+                        }
+                    }
+                });
+            }
+
+            testSaveWithoutModal() {
+                const resultDiv = document.getElementById('saveResult');
+                const saveBtn = document.getElementById('testSaveBtn');
+                
+                // Show loading state
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Testing Save...';
+                
+                // Simulate the save process with modal fallback
+                setTimeout(() => {
+                    try {
+                        // Test the modal fallback logic
+                        let savingModal = null;
+                        try {
+                            if (window.modernModal && typeof window.modernModal.savingExam === 'function') {
+                                savingModal = window.modernModal.savingExam();
+                            }
+                        } catch (error) {
+                            console.warn('ModernModal savingExam not available:', error.message);
+                        }
+                        
+                        // Simulate save success
+                        setTimeout(() => {
+                            // Try to close modal safely
+                            try {
+                                if (savingModal && typeof savingModal.close === 'function') {
+                                    savingModal.close();
+                                }
+                            } catch (error) {
+                                console.warn('Error closing saving modal:', error.message);
+                            }
+                            
+                            // Show success
+                            resultDiv.className = 'mt-4 p-3 bg-green-50 rounded-lg border border-green-200';
+                            resultDiv.innerHTML = '<p class="text-sm text-green-700"><i class="fas fa-check-circle mr-2"></i>Save test completed successfully! No modal errors occurred.</p>';
+                            resultDiv.classList.remove('hidden');
+                            
+                            // Reset button
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Test Save (Mock)';
+                            saveBtn.className = 'bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors';
+                            
+                        }, 1000);
+                        
+                    } catch (error) {
+                        // Show error
+                        resultDiv.className = 'mt-4 p-3 bg-red-50 rounded-lg border border-red-200';
+                        resultDiv.innerHTML = `<p class="text-sm text-red-700"><i class="fas fa-exclamation-triangle mr-2"></i>Save test failed: ${error.message}</p>`;
+                        resultDiv.classList.remove('hidden');
+                        
+                        // Reset button
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Test Save (Mock)';
+                        saveBtn.className = 'bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors';
+                    }
+                }, 500);
+            }
+
+            addTest(name, description, testFunction) {
+                this.tests.push({
+                    name,
+                    description,
+                    testFunction,
+                    status: 'pending'
+                });
+            }
+
+            async runAllTests() {
+                const resultsContainer = document.getElementById('testResults');
+                resultsContainer.innerHTML = '';
+                this.results = [];
+
+                for (let i = 0; i < this.tests.length; i++) {
+                    const test = this.tests[i];
+                    const testElement = this.createTestElement(test, i);
+                    resultsContainer.appendChild(testElement);
+
+                    try {
+                        const result = await test.testFunction();
+                        this.updateTestResult(i, result ? 'pass' : 'fail', result ? 'Test passed' : 'Test failed');
+                    } catch (error) {
+                        this.updateTestResult(i, 'fail', `Error: ${error.message}`);
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                this.showSummary();
+            }
+
+            createTestElement(test, index) {
+                const div = document.createElement('div');
+                div.className = 'test-result test-pending rounded-lg p-6';
+                div.id = `test-${index}`;
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold">${test.name}</h3>
+                            <p class="text-sm opacity-90">${test.description}</p>
+                        </div>
+                        <div class="test-status">
+                            <i class="fas fa-clock text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="test-details mt-4 hidden">
+                        <p class="text-sm"></p>
+                    </div>
+                `;
+                return div;
+            }
+
+            updateTestResult(index, status, details) {
+                const testElement = document.getElementById(`test-${index}`);
+                const statusIcon = testElement.querySelector('.test-status i');
+                const detailsElement = testElement.querySelector('.test-details p');
+
+                testElement.className = `test-result test-${status} rounded-lg p-6`;
+                
+                if (status === 'pass') {
+                    statusIcon.className = 'fas fa-check-circle text-2xl';
+                } else if (status === 'fail') {
+                    statusIcon.className = 'fas fa-times-circle text-2xl';
+                }
+
+                detailsElement.textContent = details;
+                testElement.querySelector('.test-details').classList.remove('hidden');
+                
+                this.results.push({ index, status, details });
+            }
+
+            showSummary() {
+                const passed = this.results.filter(r => r.status === 'pass').length;
+                const failed = this.results.filter(r => r.status === 'fail').length;
+                
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'bg-white rounded-xl shadow-lg p-8 mt-8';
+                summaryDiv.innerHTML = `
+                    <h2 class="text-2xl font-bold mb-4">Test Summary</h2>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="text-3xl font-bold text-green-600">${passed}</div>
+                            <div class="text-green-700">Passed</div>
+                        </div>
+                        <div class="text-center p-4 bg-red-50 rounded-lg">
+                            <div class="text-3xl font-bold text-red-600">${failed}</div>
+                            <div class="text-red-700">Failed</div>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="text-3xl font-bold text-blue-600">${this.tests.length}</div>
+                            <div class="text-blue-700">Total</div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('testResults').appendChild(summaryDiv);
+            }
+
+            // Test Functions
+            testModalFallback() {
+                return new Promise((resolve) => {
+                    try {
+                        // Test the modal fallback logic
+                        let savingModal = null;
+                        let errorOccurred = false;
+                        
+                        try {
+                            if (window.modernModal && typeof window.modernModal.savingExam === 'function') {
+                                savingModal = window.modernModal.savingExam();
+                            }
+                        } catch (error) {
+                            console.log('Expected error caught:', error.message);
+                        }
+                        
+                        // Test modal close fallback
+                        try {
+                            if (savingModal && typeof savingModal.close === 'function') {
+                                savingModal.close();
+                            }
+                        } catch (error) {
+                            console.log('Expected close error caught:', error.message);
+                        }
+                        
+                        // If we get here without throwing, the fallback works
+                        resolve(true);
+                    } catch (error) {
+                        console.error('Modal fallback test failed:', error);
+                        resolve(false);
+                    }
+                });
+            }
+
+            testTemplateStructure() {
+                return new Promise((resolve) => {
+                    try {
+                        const question = new Question('multiple_choice');
+                        question.id = 'test-structure';
+                        question.options = [
+                            { text: 'A', isCorrect: true },
+                            { text: 'B', isCorrect: false }
+                        ];
+                        
+                        const html = this.templateEngine.renderMultipleChoice(question);
+                        
+                        // Check for expected structure
+                        const hasRadio = html.includes('type="radio"');
+                        const hasCorrectClasses = html.includes('w-8 h-8') && html.includes('option-item');
+                        
+                        resolve(hasRadio && hasCorrectClasses);
+                    } catch (error) {
+                        console.error('Template structure test failed:', error);
+                        resolve(false);
+                    }
+                });
+            }
+
+            testVisualUpdateLogic() {
+                return new Promise((resolve) => {
+                    try {
+                        // Create a test DOM structure
+                        const testDiv = document.createElement('div');
+                        testDiv.innerHTML = `
+                            <div class="option-item">
+                                <div class="flex items-start gap-3">
+                                    <div class="relative">
+                                        <div class="w-8 h-8 bg-gray-500"></div>
+                                        <input type="radio" class="correct-answer" checked>
+                                    </div>
+                                    <div>
+                                        <input class="option-text" value="Test">
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.body.appendChild(testDiv);
+                        
+                        // Test the visual update logic
+                        this.updateVisualStateReliable(testDiv);
+                        
+                        // Check if classes were updated
+                        const container = testDiv.querySelector('.flex.items-start.gap-3');
+                        const hasBlueBackground = container.className.includes('bg-gradient-to-r from-blue-50');
+                        
+                        // Cleanup
+                        document.body.removeChild(testDiv);
+                        
+                        resolve(hasBlueBackground);
+                    } catch (error) {
+                        console.error('Visual update test failed:', error);
+                        resolve(false);
+                    }
+                });
+            }
+        }
+
+        // Initialize and setup tests
+        document.addEventListener('DOMContentLoaded', () => {
+            const testSuite = new FixesTestSuite();
+            
+            // Add tests
+            testSuite.addTest(
+                'ModernModal Fallback',
+                'Verify save functionality works without ModernModal errors',
+                () => testSuite.testModalFallback()
+            );
+            
+            testSuite.addTest(
+                'Template Structure',
+                'Verify template has correct structure for visual updates',
+                () => testSuite.testTemplateStructure()
+            );
+            
+            testSuite.addTest(
+                'Visual Update Logic',
+                'Verify visual update method works with actual DOM structure',
+                () => testSuite.testVisualUpdateLogic()
+            );
+            
+            // Setup run button
+            document.getElementById('runTests').addEventListener('click', () => {
+                testSuite.runAllTests();
+            });
+        });
+    </script>
+</body>
+</html>

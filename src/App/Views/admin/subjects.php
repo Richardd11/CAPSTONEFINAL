@@ -93,7 +93,7 @@
                     <h1 class="sf-pro-display text-3xl font-bold mb-2">Subject Management</h1>
                     <p class="text-xl opacity-90">Manage academic subjects and courses</p>
                 </div>
-                <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/dashboard" 
+                <a href="/admin/dashboard" 
                    class="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-6 py-3 rounded-xl hover:bg-white hover:text-blue-600 transition-all duration-300 font-semibold">
                     <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
                 </a>
@@ -357,222 +357,18 @@
         </div>
     </div>
 
-    <script>
-        // Search and Filter functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('subjectSearch');
-            const yearFilter = document.getElementById('yearFilter');
-            const semesterFilter = document.getElementById('semesterFilter');
-            
-            if (searchInput) searchInput.addEventListener('input', filterSubjects);
-            if (yearFilter) yearFilter.addEventListener('change', filterSubjects);
-            if (semesterFilter) semesterFilter.addEventListener('change', filterSubjects);
-        });
-        
-        function filterSubjects() {
-            const searchTerm = document.getElementById('subjectSearch')?.value.toLowerCase() || '';
-            const selectedYear = document.getElementById('yearFilter')?.value || '';
-            const selectedSemester = document.getElementById('semesterFilter')?.value || '';
-            
-            const yearSections = document.querySelectorAll('[data-year-section]');
-            
-            yearSections.forEach(section => {
-                const yearLevel = section.getAttribute('data-year-section');
-                const subjectCards = section.querySelectorAll('.subject-card');
-                let visibleCards = 0;
-                
-                subjectCards.forEach(card => {
-                    const subjectCode = card.querySelector('h3')?.textContent.toLowerCase() || '';
-                    const subjectName = card.querySelector('p')?.textContent.toLowerCase() || '';
-                    const semester = card.getAttribute('data-semester') || '';
-                    
-                    const matchesSearch = subjectCode.includes(searchTerm) || subjectName.includes(searchTerm);
-                    const matchesYear = !selectedYear || yearLevel === selectedYear;
-                    const matchesSemester = !selectedSemester || semester === selectedSemester;
-                    
-                    if (matchesSearch && matchesYear && matchesSemester) {
-                        card.style.display = 'block';
-                        visibleCards++;
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
-                
-                // Show/hide entire year section based on visible cards
-                section.style.display = visibleCards > 0 ? 'block' : 'none';
-            });
-        }
-        
-        function showAddSubjectModal() {
-            document.getElementById('modalTitle').textContent = 'Add New Subject';
-            document.getElementById('submitText').textContent = 'Add Subject';
-            document.getElementById('formAction').value = 'add';
-            document.getElementById('subjectForm').reset();
-            document.getElementById('subjectId').value = '';
-            document.getElementById('subjectModal').classList.remove('hidden');
-        }
-
-        function editSubject(subject) {
-            document.getElementById('modalTitle').textContent = 'Edit Subject';
-            document.getElementById('submitText').textContent = 'Update Subject';
-            document.getElementById('formAction').value = 'edit';
-            
-            document.getElementById('subjectId').value = subject.subject_id;
-            document.getElementById('subjectCode').value = subject.subject_code;
-            document.getElementById('subjectName').value = subject.subject_name;
-            document.getElementById('description').value = subject.description || '';
-            document.getElementById('units').value = subject.units;
-            document.getElementById('yearLevel').value = subject.year_level;
-            document.getElementById('semester').value = subject.semester;
-            
-            document.getElementById('subjectModal').classList.remove('hidden');
-        }
-
-        function closeSubjectModal() {
-            document.getElementById('subjectModal').classList.add('hidden');
-        }
-
-        let subjectToDelete = null;
-
-        function deleteSubject(subjectId, subjectCode) {
-            subjectToDelete = { id: subjectId, code: subjectCode };
-            
-            // Update modal content
-            document.getElementById('deleteSubjectCode').textContent = subjectCode;
-            
-            // Show delete modal
-            document.getElementById('deleteSubjectModal').classList.remove('hidden');
-        }
-
-        function closeDeleteSubjectModal() {
-            document.getElementById('deleteSubjectModal').classList.add('hidden');
-            subjectToDelete = null;
-        }
-
-        function confirmDeleteSubject() {
-            if (!subjectToDelete) return;
-            
-            // Disable the delete button to prevent double-clicks
-            const deleteBtn = document.querySelector('#deleteSubjectModal button[onclick="confirmDeleteSubject()"]');
-            const originalText = deleteBtn.innerHTML;
-            deleteBtn.disabled = true;
-            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
-            
-            const formData = new FormData();
-            formData.append('subject_id', subjectToDelete.id);
-            
-            fetch('<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/subjects/delete', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success' || data.success) {
-                    // Show success message briefly
-                    showToast('Subject deleted successfully!', 'success');
-                    closeDeleteSubjectModal();
-                    // Reload page after a short delay to show the toast
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    throw new Error(data.message || 'Failed to delete subject');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Error: ' + error.message, 'error');
-                // Re-enable the button
-                deleteBtn.disabled = false;
-                deleteBtn.innerHTML = originalText;
-            });
-        }
-
-        // Add toast notification function
-        function showToast(message, type = 'success') {
-            // Remove existing toast if any
-            const existingToast = document.getElementById('toast');
-            if (existingToast) {
-                existingToast.remove();
-            }
-
-            // Create toast element
-            const toast = document.createElement('div');
-            toast.id = 'toast';
-            toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 translate-x-full ${
-                type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            }`;
-            toast.innerHTML = `
-                <div class="flex items-center">
-                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-
-            document.body.appendChild(toast);
-
-            // Animate in
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full');
-            }, 100);
-
-            // Auto remove after 3 seconds
-            setTimeout(() => {
-                toast.classList.add('translate-x-full');
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.remove();
-                    }
-                }, 300);
-            }, 3000);
-        }
-
-        // Handle form submission
-        document.getElementById('subjectForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const action = formData.get('action');
-            
-            let url = '<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/subjects/';
-            if (action === 'add') {
-                url += 'add';
-            } else if (action === 'edit') {
-                url += 'edit';
-            }
-            
-            fetch(url, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success' || data.success) {
-                    const actionText = action === 'add' ? 'created' : 'updated';
-                    showToast(`Subject ${actionText} successfully!`, 'success');
-                    closeSubjectModal();
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showToast('Error: ' + (data.message || 'Unknown error occurred'), 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('An error occurred while processing your request.', 'error');
-            });
-        });
-    </script>
+    <!-- Load MVC Architecture for Subjects -->
+    <!-- Services -->
+    <script src="/js/services/APIService.js"></script>
+    <script src="/js/services/SubjectManagementService.js"></script>
+    
+    <!-- Models -->
+    <script src="/js/models/Subject.js"></script>
+    
+    <!-- Controllers -->
+    <script src="/js/controllers/SubjectListController.js"></script>
+    
+    <!-- Initialize MVC and expose global functions -->
+    <script src="/js/subjects-mvc.js"></script>
 </body>
 </html>

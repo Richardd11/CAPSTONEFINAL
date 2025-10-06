@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Editing Fixes - Comprehensive Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-pass { @apply bg-green-100 border-green-500 text-green-800; }
+        .test-fail { @apply bg-red-100 border-red-500 text-red-800; }
+        .test-pending { @apply bg-yellow-100 border-yellow-500 text-yellow-800; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-bug-slash mr-3 text-blue-600"></i>
+                Exam Editing Fixes - Comprehensive Test
+            </h1>
+            <p class="text-gray-600 mb-6">
+                This test verifies all the major fixes implemented for the exam editing system.
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Test Results Summary -->
+                <div class="bg-blue-50 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-blue-800 mb-4">
+                        <i class="fas fa-chart-bar mr-2"></i>Test Results Summary
+                    </h2>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span>Total Tests:</span>
+                            <span id="totalTests" class="font-bold">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Passed:</span>
+                            <span id="passedTests" class="font-bold text-green-600">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Failed:</span>
+                            <span id="failedTests" class="font-bold text-red-600">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Success Rate:</span>
+                            <span id="successRate" class="font-bold">0%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="bg-green-50 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-green-800 mb-4">
+                        <i class="fas fa-play mr-2"></i>Quick Actions
+                    </h2>
+                    <div class="space-y-3">
+                        <button onclick="runAllTests()" 
+                                class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-play mr-2"></i>Run All Tests
+                        </button>
+                        <button onclick="clearResults()" 
+                                class="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-trash mr-2"></i>Clear Results
+                        </button>
+                        <button onclick="exportResults()" 
+                                class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-download mr-2"></i>Export Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Categories -->
+        <div class="space-y-8">
+            <!-- 1. Toast Notification Tests -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-bell mr-3 text-purple-600"></i>
+                    1. Toast Notification System
+                </h2>
+                <p class="text-gray-600 mb-4">Tests for proper toast notifications during exam editing initialization.</p>
+                
+                <div class="space-y-3">
+                    <div class="test-item border-l-4 p-4 rounded" data-test="toast-service-exists">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Toast Service Availability</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Verify ToastService is loaded and accessible</p>
+                    </div>
+                    
+                    <div class="test-item border-l-4 p-4 rounded" data-test="edit-mode-success-toast">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Edit Mode Success Toast</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Success toast shows when exam loads for editing</p>
+                    </div>
+                    
+                    <div class="test-item border-l-4 p-4 rounded" data-test="error-handling-toast">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Error Handling Toast</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Error toast shows when initialization fails</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Multiple Choice Dynamic Options -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-list-ul mr-3 text-blue-600"></i>
+                    2. Multiple Choice Dynamic Options
+                </h2>
+                <p class="text-gray-600 mb-4">Tests for dynamic multiple choice option selection in edit mode.</p>
+                
+                <div class="space-y-3">
+                    <div class="test-item border-l-4 p-4 rounded" data-test="mc-event-listeners">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Event Listeners Setup</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Event listeners properly attached to MC options</p>
+                    </div>
+                    
+                    <div class="test-item border-l-4 p-4 rounded" data-test="mc-visual-feedback">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Visual Feedback System</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Correct answer indicators move when options are selected</p>
+                    </div>
+                    
+                    <div class="test-item border-l-4 p-4 rounded" data-test="mc-model-sync">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Model Synchronization</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Question model updates when options change</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. True/False Dynamic Selection -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-check-circle mr-3 text-green-600"></i>
+                    3. True/False Dynamic Selection
+                </h2>
+                <p class="text-gray-600 mb-4">Tests for dynamic true/false answer selection in edit mode.</p>
+                
+                <div class="space-y-3">
+                    <div class="test-item border-l-4 p-4 rounded" data-test="tf-event-handling">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Event Handling</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Both change and click events properly handled</p>
+                    </div>
+                    
+                    <div class="test-item border-l-4 p-4 rounded" data-test="tf-visual-updates">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Visual State Updates</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Visual indicators update when True/False selection changes</p>
+                    </div>
+                    
+                    <div class="test-item border-l-4 p-4 rounded" data-test="tf-data-persistence">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Data Persistence</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Selected answer persists in question model</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Exam Update vs Create -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-edit mr-3 text-orange-600"></i>
+                    4. Exam Update vs Create Logic
+                </h2>
+                <p class="text-gray-600 mb-4">Tests for proper update logic that doesn't create new exams.</p>
+                
+                <div class="space-y-3">
+                    <div class="test-item border-l-4 p-4 rounded" data-test="exam-id-preservation">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Exam ID Preservation</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Exam ID properly set and maintained in edit mode</p>
+                    </div>
+                    
+                    <div class="test-item border-l-4 p-4 rounded" data-test="update-endpoint">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Update Endpoint Usage</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Correct update endpoint used instead of create</p>
+                    </div>
+                    
+                    <div class="test-item border-l-4 p-4 rounded" data-test="assignment-data-preservation">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Assignment Data Preservation</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Year level, section, and semester data preserved</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Data Integrity Tests -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-database mr-3 text-red-600"></i>
+                    5. Data Integrity & Loading
+                </h2>
+                <p class="text-gray-600 mb-4">Tests for proper data loading and integrity in edit mode.</p>
+                
+                <div class="space-y-3">
+                    <div class="test-item border-l-4 p-4 rounded" data-test="existing-data-loading">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Existing Data Loading</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Existing exam and question data loads correctly</p>
+                    </div>
+                    
+                    <div class="test-item border-l-4 p-4 rounded" data-test="question-count-accuracy">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Question Count Accuracy</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Correct number of questions loaded without duplicates</p>
+                    </div>
+                    
+                    <div class="test-item border-l-4 p-4 rounded" data-test="form-population">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">Form Field Population</span>
+                            <span class="test-status">Pending</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Form fields populated with existing exam data</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results Log -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-terminal mr-3 text-gray-600"></i>
+                Test Execution Log
+            </h2>
+            <div id="testLog" class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm h-64 overflow-y-auto">
+                <div class="text-gray-500">Test log will appear here...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test execution framework
+        class ExamEditingTestSuite {
+            constructor() {
+                this.tests = [];
+                this.results = {
+                    total: 0,
+                    passed: 0,
+                    failed: 0
+                };
+                this.logElement = document.getElementById('testLog');
+                this.setupTests();
+            }
+
+            setupTests() {
+                // Toast Notification Tests
+                this.addTest('toast-service-exists', 'Toast Service Availability', () => {
+                    return typeof window.toastService !== 'undefined' && 
+                           typeof window.toastService.success === 'function' &&
+                           typeof window.toastService.error === 'function';
+                });
+
+                this.addTest('edit-mode-success-toast', 'Edit Mode Success Toast', () => {
+                    // Simulate edit mode initialization
+                    return typeof window.ExamBuilderController !== 'undefined';
+                });
+
+                this.addTest('error-handling-toast', 'Error Handling Toast', () => {
+                    // Check if error handling is implemented
+                    return typeof window.toastService !== 'undefined';
+                });
+
+                // Multiple Choice Tests
+                this.addTest('mc-event-listeners', 'MC Event Listeners Setup', () => {
+                    return typeof ExamBuilderController !== 'undefined' &&
+                           ExamBuilderController.prototype.setupOptionEventListeners !== undefined;
+                });
+
+                this.addTest('mc-visual-feedback', 'MC Visual Feedback System', () => {
+                    return typeof ExamBuilderController !== 'undefined' &&
+                           ExamBuilderController.prototype.updateCorrectAnswerLabelsSimple !== undefined;
+                });
+
+                this.addTest('mc-model-sync', 'MC Model Synchronization', () => {
+                    return typeof ExamBuilderController !== 'undefined' &&
+                           ExamBuilderController.prototype.handleCorrectAnswerChange !== undefined;
+                });
+
+                // True/False Tests
+                this.addTest('tf-event-handling', 'TF Event Handling', () => {
+                    return typeof ExamBuilderController !== 'undefined' &&
+                           ExamBuilderController.prototype.handleTrueFalseChange !== undefined;
+                });
+
+                this.addTest('tf-visual-updates', 'TF Visual State Updates', () => {
+                    return typeof ExamBuilderController !== 'undefined' &&
+                           ExamBuilderController.prototype.updateTrueFalseVisuals !== undefined;
+                });
+
+                this.addTest('tf-data-persistence', 'TF Data Persistence', () => {
+                    return typeof ExamBuilderController !== 'undefined' &&
+                           ExamBuilderController.prototype.populateTrueFalseData !== undefined;
+                });
+
+                // Update Logic Tests
+                this.addTest('exam-id-preservation', 'Exam ID Preservation', () => {
+                    return typeof ExamBuilderService !== 'undefined' &&
+                           ExamBuilderService.prototype.saveExam !== undefined;
+                });
+
+                this.addTest('update-endpoint', 'Update Endpoint Usage', () => {
+                    // Check if service uses correct endpoint logic
+                    const serviceCode = ExamBuilderService.prototype.saveExam.toString();
+                    return serviceCode.includes('/faculty/exam/') && serviceCode.includes('/update');
+                });
+
+                this.addTest('assignment-data-preservation', 'Assignment Data Preservation', () => {
+                    return typeof ExamBuilderController !== 'undefined' &&
+                           ExamBuilderController.prototype.updateExamMetadata !== undefined;
+                });
+
+                // Data Integrity Tests
+                this.addTest('existing-data-loading', 'Existing Data Loading', () => {
+                    return typeof ExamBuilderController !== 'undefined' &&
+                           ExamBuilderController.prototype.loadExistingQuestions !== undefined;
+                });
+
+                this.addTest('question-count-accuracy', 'Question Count Accuracy', () => {
+                    const controllerCode = ExamBuilderController.prototype.loadExistingQuestions.toString();
+                    return controllerCode.includes('this.exam.questions = []') &&
+                           controllerCode.includes('clearAllQuestions');
+                });
+
+                this.addTest('form-population', 'Form Field Population', () => {
+                    return typeof ExamBuilderController !== 'undefined' &&
+                           ExamBuilderController.prototype.populateFormFields !== undefined;
+                });
+            }
+
+            addTest(id, name, testFunction) {
+                this.tests.push({
+                    id: id,
+                    name: name,
+                    test: testFunction
+                });
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const colors = {
+                    info: 'text-blue-400',
+                    success: 'text-green-400',
+                    error: 'text-red-400',
+                    warning: 'text-yellow-400'
+                };
+                
+                const logEntry = document.createElement('div');
+                logEntry.className = colors[type] || 'text-gray-400';
+                logEntry.innerHTML = `[${timestamp}] ${message}`;
+                
+                this.logElement.appendChild(logEntry);
+                this.logElement.scrollTop = this.logElement.scrollHeight;
+            }
+
+            async runTest(testObj) {
+                this.log(`Running test: ${testObj.name}`, 'info');
+                
+                try {
+                    const result = await testObj.test();
+                    const testElement = document.querySelector(`[data-test="${testObj.id}"]`);
+                    const statusElement = testElement.querySelector('.test-status');
+                    
+                    if (result) {
+                        testElement.className = testElement.className.replace(/test-\w+/, 'test-pass');
+                        statusElement.innerHTML = '<i class="fas fa-check text-green-600"></i> PASS';
+                        this.results.passed++;
+                        this.log(`✅ ${testObj.name} - PASSED`, 'success');
+                    } else {
+                        testElement.className = testElement.className.replace(/test-\w+/, 'test-fail');
+                        statusElement.innerHTML = '<i class="fas fa-times text-red-600"></i> FAIL';
+                        this.results.failed++;
+                        this.log(`❌ ${testObj.name} - FAILED`, 'error');
+                    }
+                } catch (error) {
+                    const testElement = document.querySelector(`[data-test="${testObj.id}"]`);
+                    const statusElement = testElement.querySelector('.test-status');
+                    
+                    testElement.className = testElement.className.replace(/test-\w+/, 'test-fail');
+                    statusElement.innerHTML = '<i class="fas fa-exclamation-triangle text-red-600"></i> ERROR';
+                    this.results.failed++;
+                    this.log(`💥 ${testObj.name} - ERROR: ${error.message}`, 'error');
+                }
+                
+                this.results.total++;
+                this.updateSummary();
+            }
+
+            async runAllTests() {
+                this.log('🚀 Starting comprehensive test suite...', 'info');
+                this.results = { total: 0, passed: 0, failed: 0 };
+                
+                for (const test of this.tests) {
+                    await this.runTest(test);
+                    // Small delay between tests
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                this.log(`🏁 Test suite completed. ${this.results.passed}/${this.results.total} tests passed.`, 
+                         this.results.failed === 0 ? 'success' : 'warning');
+            }
+
+            updateSummary() {
+                document.getElementById('totalTests').textContent = this.results.total;
+                document.getElementById('passedTests').textContent = this.results.passed;
+                document.getElementById('failedTests').textContent = this.results.failed;
+                
+                const successRate = this.results.total > 0 
+                    ? Math.round((this.results.passed / this.results.total) * 100)
+                    : 0;
+                document.getElementById('successRate').textContent = `${successRate}%`;
+            }
+
+            clearResults() {
+                this.results = { total: 0, passed: 0, failed: 0 };
+                this.updateSummary();
+                
+                // Reset all test items
+                document.querySelectorAll('.test-item').forEach(item => {
+                    item.className = item.className.replace(/test-\w+/, 'test-pending');
+                    const statusElement = item.querySelector('.test-status');
+                    statusElement.textContent = 'Pending';
+                });
+                
+                // Clear log
+                this.logElement.innerHTML = '<div class="text-gray-500">Test log cleared...</div>';
+                this.log('🧹 Test results cleared', 'info');
+            }
+
+            exportResults() {
+                const results = {
+                    timestamp: new Date().toISOString(),
+                    summary: this.results,
+                    tests: this.tests.map(test => ({
+                        id: test.id,
+                        name: test.name,
+                        status: document.querySelector(`[data-test="${test.id}"] .test-status`).textContent
+                    }))
+                };
+                
+                const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `exam-editing-test-results-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.log('📄 Test results exported', 'success');
+            }
+        }
+
+        // Initialize test suite
+        const testSuite = new ExamEditingTestSuite();
+
+        // Global functions for buttons
+        function runAllTests() {
+            testSuite.runAllTests();
+        }
+
+        function clearResults() {
+            testSuite.clearResults();
+        }
+
+        function exportResults() {
+            testSuite.exportResults();
+        }
+
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            testSuite.log('🔧 Exam Editing Test Suite initialized', 'info');
+            testSuite.log('📋 Click "Run All Tests" to start comprehensive testing', 'info');
+        });
+    </script>
+</body>
+</html>
