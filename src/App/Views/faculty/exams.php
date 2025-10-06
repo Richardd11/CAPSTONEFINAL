@@ -89,7 +89,7 @@
         <div class="container mx-auto px-6">
             <div class="flex justify-between items-center">
                 <div class="flex items-center">
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/dashboard" 
+                    <a href="/faculty/dashboard" 
                        class="mr-6 p-2 rounded-full hover:bg-white/20 transition-all duration-300 group">
                         <i class="fas fa-arrow-left text-xl group-hover:transform group-hover:-translate-x-1 transition-transform"></i>
                     </a>
@@ -102,7 +102,7 @@
                     </div>
                 </div>
                 <div class="flex space-x-4">
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/create-exam" 
+                    <a href="/faculty/create-exam" 
                        class="btn-primary text-white px-8 py-3 rounded-xl font-semibold flex items-center">
                         <i class="fas fa-plus mr-2"></i>Create New Exam
                     </a>
@@ -122,7 +122,7 @@
                 <p class="text-gray-600 mb-8 max-w-md mx-auto">
                     Start creating your first exam to assess your students' knowledge and track their progress.
                 </p>
-                <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/create-exam" 
+                <a href="/faculty/create-exam" 
                    class="btn-primary text-white px-8 py-4 rounded-xl font-semibold inline-flex items-center">
                     <i class="fas fa-plus mr-2"></i>Create Your First Exam
                 </a>
@@ -198,11 +198,11 @@
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button>
                                 <div id="dropdown-<?= $exam->getId() ?>" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
-                                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exam/<?= $exam->getId() ?>" 
+                                    <a href="/faculty/exam/<?= $exam->getId() ?>" 
                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg">
                                         <i class="fas fa-eye mr-2"></i>View Details
                                     </a>
-                                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exam/<?= $exam->getId() ?>/edit" 
+                                    <a href="/faculty/exam/<?= $exam->getId() ?>/edit" 
                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                                         <i class="fas fa-edit mr-2"></i>Edit Exam
                                     </a>
@@ -246,11 +246,11 @@
                         </div>
                         
                         <div class="flex space-x-2">
-                            <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exam/<?= $exam->getId() ?>" 
+                            <a href="/faculty/exam/<?= $exam->getId() ?>" 
                                class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors text-center">
                                 View Details
                             </a>
-                            <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exam/<?= $exam->getId() ?>/edit" 
+                            <a href="/faculty/exam/<?= $exam->getId() ?>/edit" 
                                class="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors text-center">
                                 Edit
                             </a>
@@ -326,165 +326,7 @@
         </div>
     </div>
 
-    <script>
-        function toggleDropdown(examId) {
-            const dropdown = document.getElementById(`dropdown-${examId}`);
-            // Close all other dropdowns
-            document.querySelectorAll('[id^="dropdown-"]').forEach(d => {
-                if (d.id !== `dropdown-${examId}`) {
-                    d.classList.add('hidden');
-                }
-            });
-            dropdown.classList.toggle('hidden');
-        }
-
-        let examToDelete = null;
-
-        function deleteExam(examId) {
-            examToDelete = examId;
-            showDeleteModal();
-        }
-
-        function showDeleteModal() {
-            const modal = document.getElementById('deleteModal');
-            const modalContent = modal.querySelector('.relative');
-            const backdrop = modal.querySelector('.fixed.inset-0');
-            
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            
-            // Ultra-smooth multi-stage animation
-            setTimeout(() => {
-                // Stage 1: Backdrop fade with blur
-                backdrop.style.background = 'rgba(0, 0, 0, 0.4)';
-                backdrop.style.backdropFilter = 'blur(12px)';
-                
-                setTimeout(() => {
-                    // Stage 2: Modal entrance with spring physics
-                    modalContent.style.transform = 'scale(1.05) translateY(-8px) rotate(0deg)';
-                    modalContent.style.opacity = '1';
-                    modalContent.style.filter = 'blur(0px)';
-                    
-                    setTimeout(() => {
-                        // Stage 3: Settle with micro-bounce
-                        modalContent.style.transform = 'scale(1) translateY(0) rotate(0deg)';
-                        
-                        setTimeout(() => {
-                            // Stage 4: Final subtle pulse
-                            modalContent.style.transform = 'scale(1.01) translateY(0) rotate(0deg)';
-                            setTimeout(() => {
-                                modalContent.style.transform = 'scale(1) translateY(0) rotate(0deg)';
-                            }, 150);
-                        }, 200);
-                    }, 300);
-                }, 200);
-            }, 100);
-        }
-
-        function closeDeleteModal() {
-            const modal = document.getElementById('deleteModal');
-            const modalContent = modal.querySelector('.relative');
-            const backdrop = modal.querySelector('.fixed.inset-0');
-            
-            // Ultra-smooth exit animation
-            modalContent.style.transform = 'scale(0.8) translateY(30px) rotate(-2deg)';
-            modalContent.style.opacity = '0';
-            modalContent.style.filter = 'blur(4px)';
-            
-            // Fade out backdrop
-            backdrop.style.background = 'rgba(0, 0, 0, 0)';
-            backdrop.style.backdropFilter = 'blur(0px)';
-            
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                document.body.style.overflow = 'auto';
-                examToDelete = null;
-                
-                // Reset for next time
-                modalContent.style.transform = 'scale(0.75) translateY(48px) rotate(1deg)';
-                modalContent.style.opacity = '0';
-                modalContent.style.filter = 'blur(0px)';
-                
-                // Reset button state
-                const deleteBtn = document.getElementById('deleteButtonText');
-                deleteBtn.innerHTML = 'Delete Exam';
-                deleteBtn.parentElement.disabled = false;
-            }, 500);
-        }
-
-        function confirmDelete() {
-            if (!examToDelete) return;
-            
-            const deleteBtn = document.getElementById('deleteButtonText');
-            const deleteButton = deleteBtn.parentElement;
-            
-            // Show loading state
-            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
-            deleteButton.disabled = true;
-            deleteButton.style.opacity = '0.7';
-            
-            fetch(`<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exam/${examToDelete}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Show success state
-                    deleteBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Deleted!';
-                    deleteButton.style.background = 'linear-gradient(to right, #10b981, #059669)';
-                    
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showToast('Failed to delete exam: ' + data.message, 'error');
-                    closeDeleteModal();
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('An error occurred while deleting the exam', 'error');
-                closeDeleteModal();
-            });
-        }
-
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 px-6 py-4 rounded-2xl shadow-lg z-50 transform translate-x-full transition-all duration-300 ${
-                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-            }`;
-            toast.innerHTML = `
-                <div class="flex items-center">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i>
-                    ${message}
-                </div>
-            `;
-            
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.transform = 'translateX(0)';
-            }, 100);
-            
-            setTimeout(() => {
-                toast.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    document.body.removeChild(toast);
-                }, 300);
-            }, 3000);
-        }
-
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('[onclick^="toggleDropdown"]')) {
-                document.querySelectorAll('[id^="dropdown-"]').forEach(d => {
-                    d.classList.add('hidden');
-                });
-            }
-        });
-    </script>
+    <!-- MVC Controller -->
+    <script src="/js/controllers/faculty/FacultyExamsController.js"></script>
 </body>
 </html>

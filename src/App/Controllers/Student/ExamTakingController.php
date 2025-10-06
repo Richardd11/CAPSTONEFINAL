@@ -32,14 +32,14 @@ class ExamTakingController
         $exam = $this->examService->getExamById($examId);
         if (!$exam) {
             $_SESSION['error'] = 'Exam not found.';
-            header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/student/dashboard');
+            header('Location: /student/dashboard');
             exit;
         }
         
         // Check if student is eligible for this exam
         if (!$this->examService->isStudentEligibleForExam($currentUser->getUserId(), $examId)) {
             $_SESSION['error'] = 'You are not eligible to take this exam.';
-            header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/student/dashboard');
+            header('Location: /student/dashboard');
             exit;
         }
         
@@ -52,7 +52,7 @@ class ExamTakingController
                 'exam_id' => $examId,
                 'completed_date' => $existingAttempt['completed_at'] ?? $existingAttempt['created_at'] ?? 'recently'
             ];
-            header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/student-success');
+            header('Location: /student-success');
             exit;
         }
         
@@ -105,7 +105,7 @@ class ExamTakingController
                 $this->jsonResponse(['success' => false, 'message' => 'Invalid request method']);
                 return;
             }
-            header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/student/dashboard');
+            header('Location: /student/dashboard');
             exit;
         }
         
@@ -118,7 +118,7 @@ class ExamTakingController
                 return;
             }
             $_SESSION['error'] = 'Invalid exam attempt.';
-            header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/student/dashboard');
+            header('Location: /student/dashboard');
             exit;
         }
         
@@ -129,25 +129,24 @@ class ExamTakingController
             if ($result['success']) {
                 // Mark exam as completed in session for immediate UI update
                 $_SESSION['exam_completed'] = true;
-                $_SESSION['success'] = 'Exam submitted successfully! Your score: ' . $result['score'] . '%';
+                $_SESSION['success'] = 'Exam submitted successfully! Your answers have been recorded.';
                 
                 if ($this->isAjaxRequest()) {
                     $this->jsonResponse([
                         'success' => true, 
                         'message' => 'Exam submitted successfully!',
-                        'score' => $result['score'],
-                        'redirect' => dirname($_SERVER['SCRIPT_NAME']) . '/student-success'
+                        'redirect' => '/student-success'
                     ]);
                     return;
                 }
-                header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/student/exam-result/' . $attemptId);
+                header('Location: /student/exam-result/' . $attemptId);
             } else {
                 if ($this->isAjaxRequest()) {
                     $this->jsonResponse(['success' => false, 'message' => $result['message'] ?? 'Failed to submit exam']);
                     return;
                 }
                 $_SESSION['error'] = $result['message'] ?? 'Failed to submit exam.';
-                header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/student/dashboard');
+                header('Location: /student/dashboard');
             }
         } catch (Exception $e) {
             error_log("Exam submission error: " . $e->getMessage());
@@ -156,7 +155,7 @@ class ExamTakingController
                 return;
             }
             $_SESSION['error'] = 'An error occurred while submitting the exam.';
-            header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/student/dashboard');
+            header('Location: /student/dashboard');
         }
         
         exit;
@@ -199,7 +198,7 @@ class ExamTakingController
         $attempt = $this->examService->getExamAttemptById($attemptId);
         if (!$attempt || $attempt['student_id'] !== $currentUser->getUserId()) {
             $_SESSION['error'] = 'Exam result not found.';
-            header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/student/dashboard');
+            header('Location: /student/dashboard');
             exit;
         }
         

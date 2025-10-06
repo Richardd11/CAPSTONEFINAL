@@ -125,7 +125,7 @@
                     </div>
                 </div>
                 <div class="animate-fade-in-up animate-delay-200">
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/dashboard" 
+                    <a href="/admin/dashboard" 
                        class="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-3 rounded-2xl hover:bg-white hover:text-blue-600 transition-all duration-300 font-semibold">
                         <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
                     </a>
@@ -416,180 +416,18 @@
         </div>
     </div>
 
-    <script>
-        function showAddAssignmentModal() {
-            document.getElementById('assignmentModalTitle').textContent = 'Create Assignment';
-            document.getElementById('assignmentSubmitText').textContent = 'Create Assignment';
-            document.getElementById('assignmentAction').value = 'add';
-            document.getElementById('assignmentForm').reset();
-            document.getElementById('assignmentId').value = '';
-            document.getElementById('assignmentAcademicYear').value = '2024-2025';
-            document.getElementById('assignmentModal').classList.remove('hidden');
-        }
-
-        function editAssignment(assignment) {
-            document.getElementById('assignmentModalTitle').textContent = 'Edit Assignment';
-            document.getElementById('assignmentSubmitText').textContent = 'Update Assignment';
-            document.getElementById('assignmentAction').value = 'edit';
-            
-            document.getElementById('assignmentId').value = assignment.id;
-            document.getElementById('subjectId').value = assignment.subject_id;
-            document.getElementById('facultyId').value = assignment.faculty_id;
-            document.getElementById('assignmentYearLevel').value = assignment.year_level;
-            document.getElementById('assignmentSection').value = assignment.section;
-            document.getElementById('assignmentStatus').value = assignment.status;
-            document.getElementById('assignmentAcademicYear').value = assignment.academic_year;
-            document.getElementById('assignmentSemester').value = assignment.semester;
-            document.getElementById('assignmentNotes').value = assignment.notes || '';
-            
-            document.getElementById('assignmentModal').classList.remove('hidden');
-        }
-
-        function closeAssignmentModal() {
-            document.getElementById('assignmentModal').classList.add('hidden');
-        }
-
-        let assignmentToDelete = null;
-
-        function deleteAssignment(assignmentId) {
-            assignmentToDelete = { id: assignmentId };
-            
-            // Update modal content
-            document.getElementById('deleteAssignmentInfo').textContent = `Assignment #${assignmentId}`;
-            
-            // Show delete modal
-            document.getElementById('deleteAssignmentModal').classList.remove('hidden');
-        }
-
-        function closeDeleteAssignmentModal() {
-            document.getElementById('deleteAssignmentModal').classList.add('hidden');
-            assignmentToDelete = null;
-        }
-
-        function confirmDeleteAssignment() {
-            if (!assignmentToDelete) return;
-            
-            // Disable the delete button to prevent double-clicks
-            const deleteBtn = document.querySelector('#deleteAssignmentModal button[onclick="confirmDeleteAssignment()"]');
-            const originalText = deleteBtn.innerHTML;
-            deleteBtn.disabled = true;
-            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
-            
-            const formData = new FormData();
-            formData.append('assignment_id', assignmentToDelete.id);
-            
-            fetch('<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/assignments/delete', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success' || data.success) {
-                    // Show success message briefly
-                    showToast('Assignment deleted successfully!', 'success');
-                    closeDeleteAssignmentModal();
-                    // Reload page after a short delay to show the toast
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    throw new Error(data.message || 'Failed to delete assignment');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Error: ' + error.message, 'error');
-                // Re-enable the button
-                deleteBtn.disabled = false;
-                deleteBtn.innerHTML = originalText;
-            });
-        }
-
-        // Add toast notification function
-        function showToast(message, type = 'success') {
-            // Remove existing toast if any
-            const existingToast = document.getElementById('toast');
-            if (existingToast) {
-                existingToast.remove();
-            }
-
-            // Create toast element
-            const toast = document.createElement('div');
-            toast.id = 'toast';
-            toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 translate-x-full ${
-                type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            }`;
-            toast.innerHTML = `
-                <div class="flex items-center">
-                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-
-            document.body.appendChild(toast);
-
-            // Animate in
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full');
-            }, 100);
-
-            // Auto remove after 3 seconds
-            setTimeout(() => {
-                toast.classList.add('translate-x-full');
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.remove();
-                    }
-                }, 300);
-            }, 3000);
-        }
-
-        // Handle form submission
-        document.getElementById('assignmentForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const action = formData.get('action');
-            
-            let url = '<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/assignments/';
-            if (action === 'add') {
-                url += 'add';
-            } else if (action === 'edit') {
-                url += 'edit';
-            }
-            
-            fetch(url, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success' || data.success) {
-                    const actionText = action === 'add' ? 'created' : 'updated';
-                    showToast(`Assignment ${actionText} successfully!`, 'success');
-                    closeAssignmentModal();
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showToast('Error: ' + (data.message || 'Unknown error occurred'), 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('An error occurred while processing your request.', 'error');
-            });
-        });
-    </script>
+    <!-- Load MVC Architecture for Assignments -->
+    <!-- Services -->
+    <script src="/js/services/APIService.js"></script>
+    <script src="/js/services/AssignmentManagementService.js"></script>
+    
+    <!-- Models -->
+    <script src="/js/models/Assignment.js"></script>
+    
+    <!-- Controllers -->
+    <script src="/js/controllers/AssignmentFormController.js"></script>
+    
+    <!-- Initialize MVC and expose global functions -->
+    <script src="/js/assignments-mvc.js"></script>
 </body>
 </html>

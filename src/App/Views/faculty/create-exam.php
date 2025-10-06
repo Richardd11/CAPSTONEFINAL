@@ -6,6 +6,7 @@
     <title>Create Exam - Faculty Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/modern-animations.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         html { font-size: 16px; }
@@ -189,6 +190,32 @@
             animation: slideInUp 0.5s ease-out;
         }
         
+        @keyframes bounce-slow {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        .animate-bounce-slow {
+            animation: bounce-slow 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+        }
+        
+        .option-item.border-emerald-400 {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
         .dropdown-menu {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
@@ -204,6 +231,13 @@
             background: rgba(102, 126, 234, 0.1);
             transform: translateX(4px);
         }
+        
+        /* Shake animation for delete */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -212,7 +246,7 @@
         <div class="container mx-auto px-6 relative z-10">
             <div class="flex justify-between items-center">
                 <div class="flex items-center">
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/dashboard" 
+                    <a href="/faculty/dashboard" 
                        class="mr-6 p-2 rounded-full hover:bg-white/20 transition-all duration-300 group">
                         <i class="fas fa-arrow-left text-xl group-hover:transform group-hover:-translate-x-1 transition-transform"></i>
                     </a>
@@ -454,8 +488,7 @@
         </div>
     </div>
 
-    <!-- Success/Error Messages -->
-    <div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+    <!-- Modern Modal Container (handled by ModernModalService) -->
 
     <!-- Delete Question Modal -->
     <div id="deleteQuestionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
@@ -490,6 +523,16 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/js/exam-builder.js"></script>
+    
+    <!-- MVC Structure - Load in correct order -->
+    <script src="/js/core/ApiClient.js"></script>
+    <script src="/js/models/Question.js"></script>
+    <script src="/js/models/Exam.js"></script>
+    <script src="/js/utils/TemplateEngine.js"></script>
+    <script src="/js/utils/ModernModalService.js"></script>
+    <script src="/js/views/ExamBuilderView.js"></script>
+    <script src="/js/services/ExamBuilderService.js"></script>
+    <script src="/js/controllers/ExamBuilderController.js"></script>
+    <script src="/js/exam-builder-mvc.js"></script>
 </body>
 </html>

@@ -39,7 +39,7 @@ class FacultyController
         // Check if user is properly authenticated
         if (!$currentUser) {
             // Redirect to login if user is not found
-            header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/login');
+            header('Location: /login');
             exit;
         }
         
@@ -89,7 +89,7 @@ class FacultyController
         
         // Check if user is properly authenticated
         if (!$currentUser) {
-            header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/login');
+            header('Location: /login');
             exit;
         }
         
@@ -307,21 +307,159 @@ class FacultyController
         }
     }
 
+    public function overrideScore(): void
+    {
+        error_log("=== OVERRIDE SCORE METHOD STARTED ===");
+        
+        try {
+            $this->ensureFaculty();
+            error_log("Faculty authentication passed");
+            // Get JSON input
+            $input = json_decode(file_get_contents('php://input'), true);
+            error_log("Input received: " . json_encode($input));
+            
+            if (!$input) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Invalid JSON input'
+                ]);
+                return;
+            }
+            
+            // Validate required fields
+            $requiredFields = ['attempt_id', 'question_id', 'new_score', 'reason'];
+            foreach ($requiredFields as $field) {
+                if (!isset($input[$field]) || ($field === 'reason' && trim($input[$field]) === '')) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => "Missing required field: {$field}"
+                    ]);
+                    return;
+                }
+            }
+            
+            $attemptId = (int)$input['attempt_id'];
+            $questionId = (int)$input['question_id'];
+            $newScore = (float)$input['new_score'];
+            $reason = trim($input['reason']);
+            
+            // Get current faculty user
+            $currentUser = $this->authService->getCurrentUserModel();
+            if (!$currentUser) {
+                http_response_code(401);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ]);
+                return;
+            }
+            
+            // Validate score range (get max points from question)
+            $question = $this->examService->getQuestionById($questionId);
+            if (!$question) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Question not found'
+                ]);
+                return;
+            }
+            
+            $maxPoints = $question['points'] ?? 10;
+            if ($newScore < 0 || $newScore > $maxPoints) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => "Score must be between 0 and {$maxPoints}"
+                ]);
+                return;
+            }
+            
+            // Check if faculty has permission to override this exam
+            error_log("Getting exam attempt for ID: $attemptId");
+            $examAttempt = $this->examService->getExamAttemptById($attemptId);
+            error_log("Exam attempt result: " . json_encode($examAttempt));
+            
+            if (!$examAttempt) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Exam attempt not found'
+                ]);
+                return;
+            }
+            
+            // Verify faculty teaches this subject (optional security check)
+            $exam = $this->examService->getExamById($examAttempt['exam_id']);
+            if (!$exam) {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Exam not found'
+                ]);
+                return;
+            }
+            
+            // Save the override
+            $result = $this->examService->overrideQuestionScore(
+                $attemptId,
+                $questionId,
+                $newScore,
+                $reason,
+                $currentUser->getUserId()
+            );
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Score overridden successfully',
+                    'data' => [
+                        'attempt_id' => $attemptId,
+                        'question_id' => $questionId,
+                        'new_score' => $newScore,
+                        'reason' => $reason,
+                        'overridden_by' => $currentUser->getFullName(),
+                        'overridden_at' => date('Y-m-d H:i:s')
+                    ]
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to save score override'
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            error_log("=== OVERRIDE SCORE ERROR ===");
+            error_log("Error message: " . $e->getMessage());
+            error_log("Error file: " . $e->getFile());
+            error_log("Error line: " . $e->getLine());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'An error occurred while overriding the score: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function logout(): void
     {
-        $basePath = dirname($_SERVER['SCRIPT_NAME']);
-
         // If confirmed, perform logout and go to login
         if (isset($_GET['confirm']) && $_GET['confirm'] === 'true') {
             $this->authService->logout();
-            header('Location: ' . $basePath . '/login');
+            header('Location: /login');
             return;
         }
 
         // Otherwise, ensure user is faculty and trigger the modal on dashboard
         $this->ensureFaculty();
         $_SESSION['show_logout_modal'] = true;
-        header('Location: ' . $basePath . '/faculty/dashboard');
+        header('Location: /faculty/dashboard');
         exit;
     }
 

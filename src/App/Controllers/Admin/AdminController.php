@@ -51,14 +51,17 @@ class AdminController
      */
     public function dashboard()
     {
-    $this->ensureAdmin();
+        $this->ensureAdmin();
 
         $currentUser = $this->authService->getCurrentUser();
         
-        // Get real data from database
+        // Get sorted users from service (business logic moved to service)
+        $allUsers = $this->userService->getAllUsersSorted();
+        $preparedUsers = $this->userService->prepareUsersForView($allUsers);
+        
+        // Get other data
         $students = $this->userService->getUsersByRole('student');
         $faculty = $this->userService->getUsersByRole('faculty');
-        $allUsers = $this->userService->getAllUsers(); // Get all users for statistics
         $subjects = $this->subjectService->getAllSubjects();
         $assignments = $this->assignmentService->getAllAssignments();
         
@@ -73,8 +76,8 @@ class AdminController
         }
         
         $data = [
-            'admin' => $currentUser, // Already an array from AuthService
-            'users' => $allUsers, // All users for statistics and user management
+            'admin' => $currentUser,
+            'users' => $preparedUsers, // Pre-sorted and prepared for view
             'students' => $studentsArray,
             'faculty' => $facultyArray,
             'subjects' => $subjects,
@@ -152,17 +155,15 @@ class AdminController
      */
     public function logout()
     {
-        $basePath = dirname($_SERVER['SCRIPT_NAME']);
-
         if (isset($_GET['confirm']) && $_GET['confirm'] === 'true') {
             $this->authService->logout();
-            header('Location: ' . $basePath . '/login');
+            header('Location: /login');
             exit;
         }
 
         // Set session flag to show logout modal and redirect back to dashboard
         $_SESSION['show_logout_modal'] = true;
-        header('Location: ' . $basePath . '/admin/dashboard');
+        header('Location: /admin/dashboard');
         exit;
     }
 
@@ -189,49 +190,62 @@ class AdminController
     }
 
     /**
-     * Handle add user request
+     * Handle add user request (unified method for all user types)
+     * Returns JSON for AJAX requests, redirects for form submissions
      */
     public function addUser()
     {
-    $this->ensureAdmin();
+        $this->ensureAdmin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->showError('Invalid request method.');
             return;
         }
 
+        error_log("=== ADD USER REQUEST ===");
+        error_log("POST data: " . json_encode($_POST));
+        
         $result = $this->userService->createUser($_POST);
         
-        if ($result['success']) {
-            $this->showSuccess($result['message']);
-        } else {
-            $this->showError($result['message']);
+        error_log("Result: " . json_encode($result));
+        
+        // Check if this is an AJAX request
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+        
+        // Also check if Accept header prefers JSON
+        $acceptsJson = isset($_SERVER['HTTP_ACCEPT']) && 
+                       strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
+        
+        // Return JSON for AJAX/API requests
+        if ($isAjax || $acceptsJson || strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
+            header('Content-Type: application/json');
+            echo json_encode($result);
+            return;
         }
+        
+        // Otherwise, use traditional redirect
+        $this->handleUserOperationResult($result);
     }
 
     /**
-     * Handle add student request
+     * Handle add student request (delegates to addUser for consistency)
      */
     public function addStudent()
     {
-    $this->ensureAdmin();
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->showError('Invalid request method.');
-            return;
-        }
+        $this->addUser();
+    }
 
-        $result = $this->userService->createUser($_POST);
-        
+    /**
+     * Handle user operation result (unified response handling)
+     */
+    private function handleUserOperationResult($result)
+    {
         if ($result['success']) {
-            // Store success message in session
             $_SESSION['success_message'] = $result['message'];
-            // Redirect back to dashboard
-            $this->redirectToDashboard();
         } else {
-            // Store error message in session
             $_SESSION['error_message'] = $result['message'];
-            // Redirect back to dashboard
-            $this->redirectToDashboard();
         }
+        $this->redirectToDashboard();
     }
 
     /**
@@ -246,9 +260,10 @@ class AdminController
     }
 
     /**
-     * Handle edit user request
+     * Handle edit user request (unified method for all user types)
+     * Returns JSON for AJAX requests, redirects for form submissions
      */
-    public function editUser($userId)
+    public function editUser($userId = null)
     {
         $this->ensureAdmin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -256,230 +271,106 @@ class AdminController
             return;
         }
 
-        // Log the incoming data for debugging
-        error_log("EditUser called with userId: {$userId}, data: " . json_encode($_POST));
+        // Get user ID from parameter or POST data
+        $userId = $userId ?? ($_POST['user_id'] ?? null);
+        if (!$userId) {
+            $this->showError('User ID is required.');
+            return;
+        }
 
         $result = $this->userService->updateUser($userId, $_POST);
         
-        // Log the result for debugging
-        error_log("UpdateUser result: " . json_encode($result));
+        // Check if this is an AJAX request
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
         
-        if ($result['success']) {
-            $this->showSuccess($result['message']);
-        } else {
-            $this->showError($result['message']);
+        // Return JSON for AJAX/API requests
+        if ($isAjax || strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
+            header('Content-Type: application/json');
+            echo json_encode($result);
+            return;
         }
+        
+        $this->handleUserOperationResult($result);
     }
 
     /**
-     * Handle edit student request
+     * Handle edit student request (delegates to editUser for consistency)
      */
     public function editStudent()
     {
-    $this->ensureAdmin();
+        $this->editUser();
+    }
+
+    /**
+     * Handle delete user request (unified method for all user types)
+     * Returns JSON for AJAX requests, redirects for form submissions
+     */
+    public function deleteUser($userId = null)
+    {
+        $this->ensureAdmin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->showError('Invalid request method.');
             return;
         }
 
-        $userId = $_POST['user_id'] ?? null;
+        // Get user ID from parameter or POST data
+        $userId = $userId ?? ($_POST['user_id'] ?? null);
         if (!$userId) {
             $this->showError('User ID is required.');
             return;
         }
 
-        $result = $this->userService->updateUser($userId, $_POST);
-        
-        if ($result['success']) {
-            // Store success message in session
-            $_SESSION['success_message'] = $result['message'];
-            // Redirect back to dashboard
-            $this->redirectToDashboard();
-        } else {
-            // Store error message in session
-            $_SESSION['error_message'] = $result['message'];
-            // Redirect back to dashboard
-            $this->redirectToDashboard();
-        }
-    }
-
-    /**
-     * Handle delete user request
-     */
-    public function deleteUser($userId)
-    {
-    $this->ensureAdmin();
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->showError('Invalid request method.');
-            return;
-        }
-
         $result = $this->userService->deleteUser($userId);
         
-        if ($result['success']) {
-            $this->showSuccess($result['message']);
-        } else {
-            $this->showError($result['message']);
+        // Check if this is an AJAX request
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+        
+        // Return JSON for AJAX/API requests
+        if ($isAjax || strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
+            header('Content-Type: application/json');
+            echo json_encode($result);
+            return;
         }
+        
+        $this->handleUserOperationResult($result);
     }
 
     /**
-     * Handle delete student request
+     * Handle delete student request (delegates to deleteUser for consistency)
      */
     public function deleteStudent()
     {
-    $this->ensureAdmin();
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->showError('Invalid request method.');
-            return;
-        }
-
-        $userId = $_POST['user_id'] ?? null;
-        if (!$userId) {
-            $this->showError('User ID is required.');
-            return;
-        }
-
-        $result = $this->userService->deleteUser($userId);
-        
-        if ($result['success']) {
-            // Store success message in session
-            $_SESSION['success_message'] = $result['message'];
-            // Redirect back to dashboard
-            $this->redirectToDashboard();
-        } else {
-            // Store error message in session
-            $_SESSION['error_message'] = $result['message'];
-            // Redirect back to dashboard
-            $this->redirectToDashboard();
-        }
+        $this->deleteUser();
     }
 
     /**
-     * Add a new faculty member
+     * Add a new faculty member (delegates to addUser for consistency)
      */
     public function addFaculty()
     {
-    $this->ensureAdmin();
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->showError('Invalid request method');
-            return;
-        }
-
-        $data = [
-            'school_id' => $_POST['school_id'] ?? '',
-            'full_name' => $_POST['full_name'] ?? '',
-            'role' => 'faculty',
-            'password' => $_POST['password'] ?? ''
-        ];
-
-        // Validate required fields
-        if (empty($data['school_id']) || empty($data['full_name'])) {
-            $this->showError('School ID and Full Name are required');
-            return;
-        }
-
-        try {
-            $result = $this->userService->createUser($data);
-            
-            if ($result['success']) {
-                $this->showSuccess('Faculty member added successfully');
-                $this->redirectToDashboard();
-            } else {
-                $this->showError($result['message']);
-                $this->redirectToDashboard();
-            }
-        } catch (\Exception $e) {
-            $this->showError('Error adding faculty member: ' . $e->getMessage());
-            $this->redirectToDashboard();
-        }
+        // Ensure role is set to faculty
+        $_POST['role'] = 'faculty';
+        $this->addUser();
     }
 
     /**
-     * Edit an existing faculty member
+     * Edit an existing faculty member (delegates to editUser for consistency)
      */
     public function editFaculty()
     {
-    $this->ensureAdmin();
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->showError('Invalid request method');
-            return;
-        }
-
-        $userId = $_POST['user_id'] ?? '';
-        if (empty($userId)) {
-            $_SESSION['error_message'] = 'User ID is required';
-            $this->redirectToDashboard();
-            return;
-        }
-
-        $data = [
-            'user_id' => $userId,
-            'school_id' => $_POST['school_id'] ?? '',
-            'full_name' => $_POST['full_name'] ?? '',
-            'role' => 'faculty'
-        ];
-
-        // Validate required fields
-        if (empty($data['school_id']) || empty($data['full_name'])) {
-            $_SESSION['error_message'] = 'School ID and Full Name are required';
-            $this->redirectToDashboard();
-            return;
-        }
-
-        try {
-            $result = $this->userService->updateUser($data['user_id'] ?? null, $data);
-            
-            if ($result['success']) {
-                // Store success message in session
-                $_SESSION['success_message'] = 'Faculty member updated successfully';
-                // Redirect back to dashboard
-                $this->redirectToDashboard();
-            } else {
-                // Store error message in session
-                $_SESSION['error_message'] = $result['message'];
-                // Redirect back to dashboard
-                $this->redirectToDashboard();
-            }
-        } catch (\Exception $e) {
-            // Store error message in session
-            $_SESSION['error_message'] = 'Error updating faculty member: ' . $e->getMessage();
-            // Redirect back to dashboard
-            $this->redirectToDashboard();
-        }
+        // Ensure role is set to faculty
+        $_POST['role'] = 'faculty';
+        $this->editUser();
     }
 
     /**
-     * Delete a faculty member
+     * Delete a faculty member (delegates to deleteUser for consistency)
      */
     public function deleteFaculty()
     {
-    $this->ensureAdmin();
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->showError('Invalid request method');
-            return;
-        }
-
-        $userId = $_POST['user_id'] ?? '';
-        if (empty($userId)) {
-            $this->showError('User ID is required');
-            return;
-        }
-
-        try {
-            $result = $this->userService->deleteUser($userId);
-            
-            if ($result['success']) {
-                $this->showSuccess('Faculty member deleted successfully');
-                $this->redirectToDashboard();
-            } else {
-                $this->showError($result['message']);
-                $this->redirectToDashboard();
-            }
-        } catch (\Exception $e) {
-            $this->showError('Error deleting faculty member: ' . $e->getMessage());
-            $this->redirectToDashboard();
-        }
+        $this->deleteUser();
     }
 
     /**
@@ -504,5 +395,131 @@ class AdminController
             'status' => 'error',
             'message' => $message
         ]);
+    }
+
+    /**
+     * API: Get statistics for dashboard
+     */
+    public function getStatistics()
+    {
+        $this->ensureAdmin();
+        
+        try {
+            $allUsers = $this->userService->getAllUsers();
+            $students = $this->userService->getUsersByRole('student');
+            $faculty = $this->userService->getUsersByRole('faculty');
+            $admins = $this->userService->getUsersByRole('admin');
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'totalUsers' => count($allUsers),
+                'students' => count($students),
+                'faculty' => count($faculty),
+                'admins' => count($admins)
+            ]);
+        } catch (\Exception $e) {
+            $this->showError('Failed to get statistics: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API: Get all users
+     */
+    public function getUsers()
+    {
+        $this->ensureAdmin();
+        
+        try {
+            $users = $this->userService->getAllUsersSorted();
+            $preparedUsers = $this->userService->prepareUsersForView($users);
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'users' => $preparedUsers
+            ]);
+        } catch (\Exception $e) {
+            $this->showError('Failed to get users: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API: Get single user
+     */
+    public function getUser($id)
+    {
+        $this->ensureAdmin();
+        
+        try {
+            $user = $this->userService->getUserById($id);
+            if (!$user) {
+                $this->showError('User not found');
+                return;
+            }
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'user' => $user->toArray()
+            ]);
+        } catch (\Exception $e) {
+            $this->showError('Failed to get user: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API: Create user
+     */
+    public function createUser()
+    {
+        $this->ensureAdmin();
+        
+        try {
+            // Get JSON data or form data
+            $data = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+            $result = $this->userService->createUser($data);
+            
+            header('Content-Type: application/json');
+            echo json_encode($result);
+        } catch (\Exception $e) {
+            $this->showError('Failed to create user: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API: Update user
+     */
+    public function updateUser($id)
+    {
+        $this->ensureAdmin();
+        
+        try {
+            // Get JSON data or form data
+            $data = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+            $result = $this->userService->updateUser($id, $data);
+            
+            header('Content-Type: application/json');
+            echo json_encode($result);
+        } catch (\Exception $e) {
+            $this->showError('Failed to update user: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API: Delete user
+     */
+    public function deleteUserApi($id)
+    {
+        $this->ensureAdmin();
+        
+        try {
+            $result = $this->userService->deleteUser($id);
+            
+            header('Content-Type: application/json');
+            echo json_encode($result);
+        } catch (\Exception $e) {
+            $this->showError('Failed to delete user: ' . $e->getMessage());
+        }
     }
 }

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Creation Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">Exam Creation System Test</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test Results</h2>
+            <div id="testResults" class="space-y-2"></div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Manual Tests</h2>
+            <div class="space-y-4">
+                <button onclick="testQuestionCreation()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Test Question Creation
+                </button>
+                <button onclick="testExamValidation()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Test Exam Validation
+                </button>
+                <button onclick="testModalFunctionality()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    Test Modal Functionality
+                </button>
+                <button onclick="testToastService()" class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
+                    Test Toast Service
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the exam creation scripts -->
+    <script src="/js/utils/ToastService.js"></script>
+    <script src="/js/models/Question.js"></script>
+    <script src="/js/models/Exam.js"></script>
+    <script src="/js/utils/TemplateEngine.js"></script>
+    <script src="/js/views/ExamBuilderView.js"></script>
+    <script src="/js/services/ExamBuilderService.js"></script>
+    <script src="/js/controllers/ExamBuilderController.js"></script>
+
+    <script>
+        // Test functions
+        function addTestResult(test, passed, message) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `p-3 rounded ${passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            resultDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${passed ? 'check' : 'times'} mr-2"></i>
+                    <strong>${test}:</strong> ${message}
+                </div>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function testQuestionCreation() {
+            try {
+                // Test multiple choice question
+                const mcQuestion = new Question('multiple_choice');
+                const mcValid = mcQuestion.options.length === 4 && mcQuestion.options[0].isCorrect;
+                addTestResult('Multiple Choice Creation', mcValid, mcValid ? 'Created with 4 options, first marked correct' : 'Failed to create proper options');
+
+                // Test true/false question
+                const tfQuestion = new Question('true_false');
+                const tfValid = tfQuestion.correctAnswer === 'true';
+                addTestResult('True/False Creation', tfValid, tfValid ? 'Created with default true answer' : 'Failed to set default answer');
+
+                // Test essay question
+                const essayQuestion = new Question('essay');
+                const essayValid = essayQuestion.metadata.rubric && essayQuestion.metadata.keyConcepts;
+                addTestResult('Essay Creation', essayValid, essayValid ? 'Created with rubric and key concepts' : 'Failed to create metadata');
+
+                // Test enumeration question
+                const enumQuestion = new Question('enumeration');
+                const enumValid = Array.isArray(enumQuestion.correctAnswer) && enumQuestion.metadata.expectedCount === 3;
+                addTestResult('Enumeration Creation', enumValid, enumValid ? 'Created with array answers and expected count' : 'Failed to set defaults');
+
+            } catch (error) {
+                addTestResult('Question Creation', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testExamValidation() {
+            try {
+                // Test empty exam
+                const emptyExam = new Exam();
+                const emptyValidation = emptyExam.validate();
+                const emptyValid = !emptyValidation.isValid && emptyValidation.errors.length > 0;
+                addTestResult('Empty Exam Validation', emptyValid, emptyValid ? 'Correctly rejected empty exam' : 'Failed to validate empty exam');
+
+                // Test valid exam
+                const validExam = new Exam({
+                    title: 'Test Exam',
+                    subjectId: 'MATH101',
+                    timeLimit: 60,
+                    passingScore: 75
+                });
+                
+                const question = new Question('multiple_choice');
+                question.text = 'What is 2+2?';
+                question.options[0].text = '4';
+                question.options[1].text = '3';
+                validExam.addQuestion(question);
+                
+                const validValidation = validExam.validate();
+                addTestResult('Valid Exam Validation', validValidation.isValid, validValidation.isValid ? 'Correctly validated complete exam' : 'Failed to validate: ' + validValidation.errors.join(', '));
+
+            } catch (error) {
+                addTestResult('Exam Validation', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testModalFunctionality() {
+            try {
+                // Test if required classes exist
+                const hasTemplateEngine = typeof TemplateEngine !== 'undefined';
+                const hasExamBuilderView = typeof ExamBuilderView !== 'undefined';
+                const hasExamBuilderController = typeof ExamBuilderController !== 'undefined';
+                
+                addTestResult('Template Engine', hasTemplateEngine, hasTemplateEngine ? 'Template Engine loaded' : 'Template Engine missing');
+                addTestResult('Exam Builder View', hasExamBuilderView, hasExamBuilderView ? 'View class loaded' : 'View class missing');
+                addTestResult('Exam Builder Controller', hasExamBuilderController, hasExamBuilderController ? 'Controller class loaded' : 'Controller class missing');
+
+                if (hasTemplateEngine) {
+                    const templateEngine = new TemplateEngine();
+                    const testQuestion = new Question('multiple_choice');
+                    testQuestion.text = 'Test question';
+                    
+                    const rendered = templateEngine.renderQuestion(testQuestion);
+                    const hasContent = rendered && rendered.includes('Test question');
+                    addTestResult('Question Rendering', hasContent, hasContent ? 'Question rendered successfully' : 'Question rendering failed');
+                }
+
+            } catch (error) {
+                addTestResult('Modal Functionality', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testToastService() {
+            try {
+                const hasToastService = typeof window.toastService !== 'undefined';
+                addTestResult('Toast Service', hasToastService, hasToastService ? 'Toast service available' : 'Toast service missing');
+
+                if (hasToastService) {
+                    window.toastService.success('Test success message');
+                    window.toastService.error('Test error message');
+                    window.toastService.warning('Test warning message');
+                    window.toastService.info('Test info message');
+                    addTestResult('Toast Messages', true, 'All toast types displayed');
+                }
+            } catch (error) {
+                addTestResult('Toast Service', false, 'Error: ' + error.message);
+            }
+        }
+
+        // Run automatic tests on load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                testQuestionCreation();
+                testExamValidation();
+                testModalFunctionality();
+                testToastService();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

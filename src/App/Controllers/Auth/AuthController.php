@@ -43,6 +43,15 @@ class AuthController
      */
     public function login()
     {
+        // Enhanced logging for debugging
+        error_log("=== LOGIN REQUEST DEBUG ===");
+        error_log("Method: " . $_SERVER['REQUEST_METHOD']);
+        error_log("URI: " . $_SERVER['REQUEST_URI']);
+        error_log("Headers: " . json_encode(getallheaders()));
+        error_log("POST data: " . json_encode($_POST));
+        error_log("Session before: " . json_encode($_SESSION));
+        error_log("===========================");
+        
         // Only accept POST requests
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->showLoginError('Invalid request method.');
@@ -104,24 +113,20 @@ class AuthController
      */
     private function redirectToDashboard($role)
     {
-        // Get the base path for correct redirect
-        $scriptName = $_SERVER['SCRIPT_NAME'];
-        $basePath = dirname($scriptName);
-        
         switch ($role) {
             case 'admin':
-                header('Location: ' . $basePath . '/admin/dashboard');
+                header('Location: /admin/dashboard');
                 exit;
             case 'faculty':
-                header('Location: ' . $basePath . '/faculty/dashboard');
+                header('Location: /faculty/dashboard');
                 exit;
             case 'student':
-                header('Location: ' . $basePath . '/student-success');
+                header('Location: /student-success');
                 exit;
             default:
                 // Unknown role: clear session to avoid loops, then redirect to login
                 $this->authService->logout();
-                header('Location: ' . $basePath . '/login');
+                header('Location: /login');
                 exit;
         }
     }

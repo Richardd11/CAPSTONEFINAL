@@ -194,7 +194,7 @@
     </div>
 
     <div class="container mx-auto px-8 py-8 max-w-4xl">
-        <form id="examForm" method="POST" action="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/student/exam/submit">
+        <form id="examForm" method="POST" action="/student/exam/submit">
             <input type="hidden" name="attempt_id" value="<?= $attemptId ?>">
             
             <!-- Questions -->
@@ -204,7 +204,7 @@
                         <i class="fas fa-exclamation-triangle text-6xl text-yellow-500 mb-4"></i>
                         <h3 class="text-xl font-semibold text-gray-700 mb-2">No Questions Available</h3>
                         <p class="text-gray-500">This exam doesn't have any questions yet.</p>
-                        <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/student/dashboard" 
+                        <a href="/student/dashboard" 
                            class="ios-button text-white px-6 py-3 rounded-xl font-semibold mt-4 inline-block">
                             <i class="fas fa-arrow-left mr-2"></i>
                             Back to Dashboard
@@ -245,7 +245,7 @@
                                                 <div class="flex items-center">
                                                     <input type="radio" 
                                                            name="answers[<?= $question->getId() ?>]" 
-                                                           value="<?= $optionIndex ?>"
+                                                           value="<?= htmlspecialchars($option['option_text']) ?>"
                                                            class="hidden option-radio"
                                                            onchange="selectOption(this)">
                                                     <div class="flex items-center">
@@ -482,7 +482,7 @@
             answers[questionId] = answer;
             
             // Auto-save to server
-            fetch('<?= dirname($_SERVER['SCRIPT_NAME']) ?>/student/exam/save-answer', {
+            fetch('/student/exam/save-answer', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -522,7 +522,7 @@
             const formData = new FormData(document.getElementById('examForm'));
             
             // Submit via AJAX
-            fetch('<?= dirname($_SERVER['SCRIPT_NAME']) ?>/student/exam/submit', {
+            fetch('/student/exam/submit', {
                 method: 'POST',
                 body: formData
             })
@@ -538,7 +538,7 @@
                 
                 // Redirect after showing toast
                 setTimeout(() => {
-                    window.location.href = '<?= dirname($_SERVER['SCRIPT_NAME']) ?>/student-success';
+                    window.location.href = '/student-success';
                 }, 1500);
             })
             .catch(error => {

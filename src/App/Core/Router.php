@@ -63,28 +63,27 @@ class Router
             $path = '/';
         }
 
-        // Remove subdirectory from path if it exists
+        // Simplified path processing - don't strip subdirectories for built-in server
         $scriptName = $_SERVER['SCRIPT_NAME'];
         $scriptDir = dirname($scriptName);
-        // If app is served from /.../public, also consider stripping the parent
-        $parentDir = rtrim(dirname($scriptDir), '/');
-        $candidates = array_unique(array_filter([
-            $scriptDir,
-            $parentDir && substr($scriptDir, -7) === '/public' ? $parentDir : null,
-        ]));
-        foreach ($candidates as $base) {
-            if ($base !== '/' && $base !== '.' && strpos($path, $base) === 0) {
-                $path = substr($path, strlen($base));
-                $path = $path === '' ? '/' : $path;
-                break;
-            }
+        
+        // Only strip if we're actually in a subdirectory (not for built-in server)
+        if ($scriptDir !== '/' && $scriptDir !== '.' && strpos($path, $scriptDir) === 0) {
+            $path = substr($path, strlen($scriptDir));
+            $path = $path === '' ? '/' : $path;
         }
 
         // Debug: Log the processed path
+        error_log("=== ROUTER PATH PROCESSING ===");
+        error_log("Original URI: " . $_SERVER['REQUEST_URI']);
         error_log("Original path: " . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+        error_log("Script name: " . $scriptName);
+        error_log("Script dir: " . $scriptDir);
         error_log("Processed path: " . $path);
         error_log("Request method: " . $method);
         error_log("Available routes: " . json_encode(array_keys($this->routes[$method] ?? [])));
+        error_log("Route exists check: " . (isset($this->routes[$method][$path]) ? 'YES' : 'NO'));
+        error_log("==============================");
         
         // Special debug for student exam routes
         if (strpos($path, '/student/exam/') === 0) {
@@ -242,11 +241,28 @@ class Router
      */
     private function notFound()
     {
+        // Enhanced debugging for login issues
+        $method = $_SERVER['REQUEST_METHOD'];
+        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        
+        error_log("=== 404 ERROR DEBUG ===");
+        error_log("Method: $method");
+        error_log("Original Path: $path");
+        error_log("Available routes for $method: " . json_encode(array_keys($this->routes[$method] ?? [])));
+        error_log("All POST routes: " . json_encode(array_keys($this->routes['POST'] ?? [])));
+        error_log("Request headers: " . json_encode(getallheaders()));
+        error_log("========================");
+        
         http_response_code(404);
         header('Content-Type: application/json');
         echo json_encode([
             'status' => 'error',
-            'message' => 'Route not found.'
+            'message' => 'Route not found.',
+            'debug' => [
+                'method' => $method,
+                'path' => $path,
+                'available_routes' => array_keys($this->routes[$method] ?? [])
+            ]
         ]);
     }
 

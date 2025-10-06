@@ -34,7 +34,7 @@ class StudentDashboardController
         
         // Check if user is properly authenticated
         if (!$currentUser) {
-            header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/login');
+            header('Location: /login');
             exit;
         }
         
@@ -168,8 +168,6 @@ class StudentDashboardController
 
     public function logout(): void
     {
-        $basePath = dirname($_SERVER['SCRIPT_NAME']);
-
         try {
             // Ensure session is started
             if (session_status() === PHP_SESSION_NONE) {
@@ -179,7 +177,7 @@ class StudentDashboardController
             // If confirmed, perform logout and go to login
             if (isset($_GET['confirm']) && $_GET['confirm'] === 'true') {
                 $this->authService->logout();
-                header('Location: ' . $basePath . '/login');
+                header('Location: /login');
                 exit;
             }
 
@@ -199,7 +197,7 @@ class StudentDashboardController
             // Debug: Confirm redirect
             error_log("Redirecting to login page");
             
-            header('Location: ' . $basePath . '/login');
+            header('Location: /login');
             exit;
             
         } catch (Exception $e) {
@@ -212,7 +210,7 @@ class StudentDashboardController
             $_SESSION = [];
             session_destroy();
             
-            header('Location: ' . $basePath . '/login');
+            header('Location: /login');
             exit;
         }
     }

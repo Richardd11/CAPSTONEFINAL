@@ -36,15 +36,20 @@ class ExamService implements ExamServiceInterface
     public function createExam($data)
     {
         try {
+            error_log("CREATE EXAM - Creating new exam with data: " . json_encode($data));
+            
             // Create exam model
             $exam = new Exam($data);
             
             // Validate exam data
             $errors = $exam->validate();
             if (!empty($errors)) {
+                error_log("CREATE EXAM - Validation errors: " . json_encode($errors));
+                error_log("CREATE EXAM - Exam data that failed validation: " . json_encode($data));
                 return [
                     'success' => false,
-                    'message' => 'Validation failed: ' . implode(', ', $errors)
+                    'message' => 'Validation failed: ' . implode(', ', $errors),
+                    'validation_errors' => $errors
                 ];
             }
 
@@ -150,9 +155,12 @@ class ExamService implements ExamServiceInterface
 
         } catch (\Exception $e) {
             error_log("Error creating exam: " . $e->getMessage());
+            error_log("Error creating exam - Stack trace: " . $e->getTraceAsString());
             return [
                 'success' => false,
-                'message' => 'An error occurred while creating the exam.'
+                'message' => 'An error occurred while creating the exam: ' . $e->getMessage(),
+                'error_details' => $e->getMessage(),
+                'error_code' => $e->getCode()
             ];
         }
     }
@@ -172,8 +180,31 @@ class ExamService implements ExamServiceInterface
                 ];
             }
 
-            // Update exam data
-            $exam = new Exam(array_merge($existingExam->toArray(), $data));
+            // CRITICAL FIX: Preserve assignment data to prevent exam moving to wrong year
+            $existingData = $existingExam->toArray();
+            
+            // Preserve critical assignment fields that should NEVER change during update
+            $preservedFields = [
+                'year_level' => $existingData['year_level'],
+                'section' => $existingData['section'], 
+                'academic_year' => $existingData['academic_year'],
+                'semester' => $existingData['semester'],
+                'faculty_id' => $existingData['faculty_id'],
+                'id' => $examId
+            ];
+            
+            // CRITICAL FIX: Remove assignment fields from incoming data to prevent override
+            unset($data['year_level'], $data['section'], $data['academic_year'], $data['semester'], $data['faculty_id'], $data['id']);
+            
+            // Merge data but preserve critical fields
+            $mergedData = array_merge($existingData, $data, $preservedFields);
+            
+            error_log("UPDATE EXAM - Original data: " . json_encode($existingData));
+            error_log("UPDATE EXAM - Incoming data: " . json_encode($data));
+            error_log("UPDATE EXAM - Preserving assignment data: " . json_encode($preservedFields));
+            error_log("UPDATE EXAM - Final merged data: " . json_encode($mergedData));
+            
+            $exam = new Exam($mergedData);
             $exam->setId($examId);
 
             // Validate exam data
@@ -254,16 +285,26 @@ class ExamService implements ExamServiceInterface
 
             // Update exam with total points
             $exam->setTotalPoints($totalPoints);
+            
+            error_log("UPDATE EXAM SERVICE - About to update exam with data: " . json_encode($exam->toArray()));
+            
             $result = $this->examDAO->update($exam);
+            
+            error_log("UPDATE EXAM SERVICE - DAO update result: " . ($result ? 'SUCCESS' : 'FAILED'));
 
             if ($result) {
+                $finalExamData = $this->examDAO->getById($examId);
+                error_log("UPDATE EXAM SERVICE - Final exam data after update: " . json_encode($finalExamData ? $finalExamData->toArray() : 'NULL'));
+                
                 return [
                     'success' => true,
                     'message' => 'Exam updated successfully.',
+                    'exam_id' => $examId,
                     'data' => $exam->toArray()
                 ];
             }
 
+            error_log("UPDATE EXAM SERVICE - Failed to update exam in database");
             return [
                 'success' => false,
                 'message' => 'Failed to update exam.'
@@ -527,25 +568,90 @@ class ExamService implements ExamServiceInterface
     public function getDetailedExamResults($examId, $studentId = null): array
     {
         try {
-            // Get real exam results from database using ExamAttemptDAO
-            $results = $this->examAttemptDAO->getExamResults($examId, $studentId);
+            error_log("=== GETTING DETAILED EXAM RESULTS ===");
+            error_log("Exam ID: $examId, Student ID filter: " . ($studentId ?? 'all'));
             
-            // Format the results for the frontend
+            // Get exam attempts with comprehensive student data
+            $db = \App\Config\Database::getInstance()->getConnection();
+            
+            $query = "
+                SELECT 
+                    ea.id as attempt_id,
+                    ea.student_id,
+                    ea.score as stored_score,
+                    ea.status,
+                    ea.start_time,
+                    ea.end_time,
+                    ea.created_at as completed_at,
+                    u.full_name as name,
+                    u.school_id as student_school_id,
+                    e.title as exam_title
+                FROM exam_attempts ea
+                INNER JOIN users u ON ea.student_id = u.user_id AND u.role = 'student'
+                INNER JOIN exams e ON ea.exam_id = e.id
+                WHERE ea.exam_id = ?
+            ";
+            
+            $params = [$examId];
+            if ($studentId) {
+                $query .= " AND ea.student_id = ?";
+                $params[] = $studentId;
+            }
+            
+            $query .= " ORDER BY ea.score DESC, u.full_name ASC";
+            
+            $stmt = $db->prepare($query);
+            $stmt->execute($params);
+            $attempts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            error_log("Found " . count($attempts) . " exam attempts");
+            
+            // Format the results with accurate scoring
             $formattedResults = [];
-            foreach ($results as $result) {
+            foreach ($attempts as $attempt) {
+                // Get comprehensive details for accurate scoring
+                $comprehensiveDetails = $this->getComprehensiveStudentExamDetails($attempt['attempt_id']);
+                
+                if ($comprehensiveDetails) {
+                    // Use recalculated accurate score
+                    $accurateScore = $comprehensiveDetails['score'];
+                    $correctAnswers = $comprehensiveDetails['correct_answers'];
+                    $totalQuestions = $comprehensiveDetails['total_questions'];
+                    
+                    error_log("Student: {$attempt['name']} - Stored: {$attempt['stored_score']}% - Accurate: {$accurateScore}%");
+                } else {
+                    // Fallback to stored score if comprehensive details fail
+                    $accurateScore = (float)$attempt['stored_score'];
+                    $correctAnswers = 0;
+                    $totalQuestions = 0;
+                    
+                    error_log("Using fallback score for {$attempt['name']}: {$accurateScore}%");
+                }
+                
+                // Calculate grade based on accurate score
+                $grade = $this->calculateGrade($accurateScore);
+                $status = $this->getPerformanceStatus($accurateScore);
+                
                 $formattedResults[] = [
-                    'id' => $result['id'],
-                    'name' => $result['name'],
-                    'student_id' => $result['student_id'],
-                    'score' => (float)$result['score'],
-                    'completed_at' => $result['completed_at'],
-                    'status' => $result['status']
+                    'id' => (int)$attempt['attempt_id'],
+                    'name' => $attempt['name'],
+                    'student_id' => $attempt['student_school_id'],
+                    'score' => round($accurateScore, 2),
+                    'grade' => $grade,
+                    'status' => $status,
+                    'correct_answers' => $correctAnswers,
+                    'total_questions' => $totalQuestions,
+                    'completed_at' => $attempt['end_time'] ?: $attempt['completed_at'],
+                    'exam_status' => $attempt['status']
                 ];
             }
             
+            error_log("Returning " . count($formattedResults) . " formatted results");
             return $formattedResults;
+            
         } catch (\Exception $e) {
             error_log("Error getting detailed exam results: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             return [];
         }
     }
@@ -561,6 +667,38 @@ class ExamService implements ExamServiceInterface
             error_log("Error getting exam student count: " . $e->getMessage());
             return 0;
         }
+    }
+
+    /**
+     * Calculate letter grade based on score percentage
+     */
+    private function calculateGrade($score): string
+    {
+        if ($score >= 97) return 'A+';
+        if ($score >= 93) return 'A';
+        if ($score >= 90) return 'A-';
+        if ($score >= 87) return 'B+';
+        if ($score >= 83) return 'B';
+        if ($score >= 80) return 'B-';
+        if ($score >= 77) return 'C+';
+        if ($score >= 73) return 'C';
+        if ($score >= 70) return 'C-';
+        if ($score >= 67) return 'D+';
+        if ($score >= 65) return 'D';
+        return 'F';
+    }
+
+    /**
+     * Get performance status based on score
+     */
+    private function getPerformanceStatus($score): string
+    {
+        if ($score >= 90) return 'Outstanding';
+        if ($score >= 85) return 'Excellent';
+        if ($score >= 80) return 'Very Good';
+        if ($score >= 75) return 'Satisfactory';
+        if ($score >= 60) return 'Needs Improvement';
+        return 'Unsatisfactory';
     }
 
     /**
@@ -762,6 +900,131 @@ class ExamService implements ExamServiceInterface
     // NOTE: Mock data methods removed to prevent fake data from appearing
     // These methods were generating fake students and scores
     // Real database queries should be implemented instead
+
+    /**
+     * Auto-save exam as draft
+     */
+    public function autoSaveExam($data)
+    {
+        try {
+            // Mark as draft
+            $data['is_draft'] = true;
+            $data['status'] = 'draft';
+            
+            // If exam exists, update it
+            if (isset($data['exam_id']) && $data['exam_id']) {
+                return $this->updateExam($data['exam_id'], $data);
+            } else {
+                // Create new draft
+                return $this->createExam($data);
+            }
+        } catch (\Exception $e) {
+            error_log("Error auto-saving exam: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Auto-save failed: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Validate exam data
+     */
+    public function validateExam($data)
+    {
+        try {
+            $errors = [];
+            $warnings = [];
+
+            // Validate exam metadata
+            if (empty($data['title'])) {
+                $errors[] = 'Exam title is required';
+            }
+
+            if (empty($data['subject_id'])) {
+                $errors[] = 'Subject is required';
+            }
+
+            if (empty($data['questions']) || count($data['questions']) === 0) {
+                $errors[] = 'Exam must have at least one question';
+            }
+
+            // Validate each question
+            if (!empty($data['questions'])) {
+                foreach ($data['questions'] as $index => $question) {
+                    $questionNum = $index + 1;
+                    
+                    if (empty($question['question_text'])) {
+                        $errors[] = "Question {$questionNum}: Question text is required";
+                    }
+
+                    if (!isset($question['points']) || $question['points'] < 0) {
+                        $errors[] = "Question {$questionNum}: Points must be greater than 0";
+                    }
+
+                    // Type-specific validation
+                    switch ($question['question_type']) {
+                        case 'multiple_choice':
+                            if (empty($question['options']) || count($question['options']) < 2) {
+                                $errors[] = "Question {$questionNum}: Multiple choice questions must have at least 2 options";
+                            }
+                            $hasCorrect = false;
+                            foreach ($question['options'] as $option) {
+                                if ($option['is_correct']) {
+                                    $hasCorrect = true;
+                                    break;
+                                }
+                            }
+                            if (!$hasCorrect) {
+                                $errors[] = "Question {$questionNum}: Must have a correct answer selected";
+                            }
+                            break;
+
+                        case 'true_false':
+                            if (!isset($question['correct_answer'])) {
+                                $errors[] = "Question {$questionNum}: Must have a correct answer";
+                            }
+                            break;
+
+                        case 'enumeration':
+                            if (empty($question['correct_answer'])) {
+                                $errors[] = "Question {$questionNum}: Must have correct answers";
+                            }
+                            break;
+
+                        case 'essay':
+                            if (empty($question['rubric'])) {
+                                $warnings[] = "Question {$questionNum}: Essay questions should have a rubric for better grading";
+                            }
+                            break;
+                    }
+                }
+            }
+
+            // Check time limit
+            if (isset($data['time_limit'])) {
+                $estimatedTime = count($data['questions']) * 2; // 2 minutes per question
+                if ($data['time_limit'] < $estimatedTime) {
+                    $warnings[] = "Time limit may be too short. Estimated time needed: {$estimatedTime} minutes";
+                }
+            }
+
+            return [
+                'success' => true,
+                'valid' => count($errors) === 0,
+                'errors' => $errors,
+                'warnings' => $warnings
+            ];
+        } catch (\Exception $e) {
+            error_log("Error validating exam: " . $e->getMessage());
+            return [
+                'success' => false,
+                'valid' => false,
+                'errors' => ['Validation failed: ' . $e->getMessage()],
+                'warnings' => []
+            ];
+        }
+    }
 
     /**
      * Get exams available for a student based on year level and section
@@ -980,18 +1243,25 @@ public function submitExamAnswers($attemptId, $answers, $studentId): array
         error_log("Student ID: $studentId");
         error_log("Answers received: " . json_encode($answers));
         
-        // Calculate score based on answers
-        $score = $this->calculateScore($answers, $attemptId);
-        error_log("Calculated score: $score");
+        // Process answers and handle AI grading for essays
+        $this->processAnswersWithAI($attemptId, $answers);
+        
+        // Calculate score based on answers (including AI-graded essays)
+        $scoreData = $this->calculateScore($answers, $attemptId);
+        error_log("Calculated score data: " . json_encode($scoreData));
+        
+        // Extract percentage for database storage (backward compatibility)
+        $scorePercentage = is_array($scoreData) ? $scoreData['percentage'] : $scoreData;
         
         // Mark exam attempt as completed
-        $completed = $this->examAttemptDAO->completeAttempt($attemptId, $score, $answers);
+        $completed = $this->examAttemptDAO->completeAttempt($attemptId, $scorePercentage, $answers);
         error_log("Attempt completion result: " . ($completed ? 'success' : 'failed'));
         
         if ($completed) {
             return [
                 'success' => true,
-                'score' => $score,
+                'score' => $scorePercentage, // Keep for backward compatibility
+                'score_data' => $scoreData, // New detailed score data
                 'message' => 'Exam submitted successfully'
             ];
         } else {
@@ -1098,41 +1368,21 @@ public function saveStudentAnswer($attemptId, $questionId, $answer): bool
     public function getExamAttemptById($attemptId): ?array
     {
         try {
-            // Query exam_attempts table
-            // For now, return dummy data based on attempt ID
-            $attempts = [
-                1 => [
-                    'id' => 1,
-                    'student_id' => 1,
-                    'exam_id' => 1,
-                    'score' => 85,
-                    'status' => 'completed',
-                    'completed_at' => '2024-09-20 14:30:00',
-                    'duration' => 45
-                ],
-                2 => [
-                    'id' => 2,
-                    'student_id' => 1,
-                    'exam_id' => 2,
-                    'score' => 92,
-                    'status' => 'completed',
-                    'completed_at' => '2024-09-18 10:15:00',
-                    'duration' => 60
-                ],
-                3 => [
-                    'id' => 3,
-                    'student_id' => 1,
-                    'exam_id' => 3,
-                    'score' => 78,
-                    'status' => 'completed',
-                    'completed_at' => '2024-09-15 16:45:00',
-                    'duration' => 30
-                ]
-            ];
+            // Query exam_attempts table with real database query
+            $db = \App\Config\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("
+                SELECT ea.*, e.title as exam_title, u.full_name as student_name
+                FROM exam_attempts ea
+                LEFT JOIN exams e ON ea.exam_id = e.id
+                LEFT JOIN users u ON ea.student_id = u.user_id
+                WHERE ea.id = ?
+            ");
+            $stmt->execute([$attemptId]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             
-            return $attempts[$attemptId] ?? null;
+            return $result ?: null;
         } catch (\Exception $e) {
-            error_log("Error getting exam attempt: " . $e->getMessage());
+            error_log("Error getting exam attempt by ID: " . $e->getMessage());
             return null;
         }
     }
@@ -1177,8 +1427,9 @@ public function saveStudentAnswer($attemptId, $questionId, $answer): bool
 
 /**
  * Calculate exam score
+ * Returns array with detailed score information or legacy float for backward compatibility
  */
-    private function calculateScore($answers, $attemptId): float
+    private function calculateScore($answers, $attemptId)
     {
         try {
             error_log("=== CALCULATING SCORE ===");
@@ -1208,36 +1459,51 @@ public function saveStudentAnswer($attemptId, $questionId, $answer): bool
                 return 0.0;
             }
             
-            $correctAnswers = 0;
-            $totalQuestions = count($questions);
+            $pointsEarned = 0;
+            $totalPoints = 0;
             
             foreach ($questions as $question) {
                 $questionId = $question->getId();
+                $questionPoints = $question->getPoints();
                 $studentAnswer = $answers[$questionId] ?? null;
+                
+                // Add to total points regardless of answer
+                $totalPoints += $questionPoints;
                 
                 if ($studentAnswer !== null) {
                     // Get correct answer for this question
                     $correctAnswer = $this->getCorrectAnswerForQuestion($questionId);
-                    error_log("Question $questionId - Student: '$studentAnswer', Correct: '$correctAnswer'");
+                    error_log("Question $questionId ({$questionPoints}pts) - Student: '$studentAnswer', Correct: '$correctAnswer'");
                     
                     if ($studentAnswer === $correctAnswer) {
-                        $correctAnswers++;
-                        error_log("Question $questionId: CORRECT");
+                        $pointsEarned += $questionPoints;
+                        error_log("Question $questionId: CORRECT (+{$questionPoints} points)");
                     } else {
-                        error_log("Question $questionId: INCORRECT");
+                        error_log("Question $questionId: INCORRECT (0 points)");
                     }
                 } else {
-                    error_log("Question $questionId: NO ANSWER");
+                    error_log("Question $questionId: NO ANSWER (0 points)");
                 }
             }
             
-            $score = ($correctAnswers / $totalQuestions) * 100;
-            error_log("Final score calculation: $correctAnswers/$totalQuestions = $score%");
+            $percentage = $totalPoints > 0 ? ($pointsEarned / $totalPoints) * 100 : 0;
+            error_log("Final score calculation: $pointsEarned/$totalPoints = $percentage%");
             
-            return round($score, 2);
+            // Return both raw score and percentage for real academic grading
+            return [
+                'percentage' => round($percentage, 2),
+                'points_earned' => $pointsEarned,
+                'total_points' => $totalPoints,
+                'raw_score' => "$pointsEarned/$totalPoints"
+            ];
         } catch (\Exception $e) {
             error_log("Error calculating score: " . $e->getMessage());
-            return 0.0;
+            return [
+                'percentage' => 0.0,
+                'points_earned' => 0,
+                'total_points' => 0,
+                'raw_score' => "0/0"
+            ];
         }
     }
     
@@ -1247,17 +1513,36 @@ public function saveStudentAnswer($attemptId, $questionId, $answer): bool
     private function getCorrectAnswerForQuestion($questionId): ?string
     {
         try {
-            // Get correct answer from question_options
-            $options = $this->getQuestionOptions($questionId);
-            
-            foreach ($options as $option) {
-                if ($option->getIsCorrect()) {
-                    return $option->getOptionText();
-                }
+            // First, get the question to check its type
+            $question = $this->questionDAO->getById($questionId);
+            if (!$question) {
+                error_log("Question not found: $questionId");
+                return null;
             }
             
-            // If no options found, might be a True/False question - assume "true" is correct
-            return "true";
+            $questionType = $question->getQuestionType();
+            error_log("Question $questionId type: $questionType");
+            
+            if ($questionType === 'true_false') {
+                // For true/false questions, get the correct answer from the question model
+                $correctAnswer = $question->getCorrectAnswer() ?? 'true';
+                error_log("True/False question $questionId correct answer: $correctAnswer");
+                return $correctAnswer;
+            } else {
+                // For multiple choice questions, get correct answer from question_options
+                $options = $this->getQuestionOptions($questionId);
+                
+                foreach ($options as $option) {
+                    if ($option->getIsCorrect()) {
+                        $correctText = $option->getOptionText();
+                        error_log("Multiple choice question $questionId correct answer: $correctText");
+                        return $correctText;
+                    }
+                }
+                
+                error_log("No correct option found for multiple choice question $questionId");
+                return null;
+            }
         } catch (\Exception $e) {
             error_log("Error getting correct answer for question $questionId: " . $e->getMessage());
             return null;
@@ -1313,7 +1598,7 @@ public function saveStudentAnswer($attemptId, $questionId, $answer): bool
                 return null;
             }
             
-            // Get questions with answers
+            // Get questions with answers, including faculty overrides
             $questionsQuery = "
                 SELECT 
                     q.id as question_id,
@@ -1324,9 +1609,16 @@ public function saveStudentAnswer($attemptId, $questionId, $answer): bool
                     sa.answer_text,
                     sa.selected_option_id,
                     sa.is_correct as stored_is_correct,
-                    sa.points_earned
+                    sa.points_earned,
+                    sa.score as student_answer_score,
+                    fso.new_score as override_score,
+                    fso.reason as override_reason,
+                    fso.overridden_at,
+                    u_faculty.full_name as override_faculty_name
                 FROM questions q
                 LEFT JOIN student_answers sa ON q.id = sa.question_id AND sa.attempt_id = ?
+                LEFT JOIN faculty_score_overrides fso ON sa.attempt_id = fso.attempt_id AND sa.question_id = fso.question_id
+                LEFT JOIN users u_faculty ON fso.overridden_by = u_faculty.user_id
                 WHERE q.exam_id = ?
                 ORDER BY q.order_index, q.id
             ";
@@ -1350,14 +1642,26 @@ public function saveStudentAnswer($attemptId, $questionId, $answer): bool
                 $correctAnswer = '';
                 $studentAnswerText = $question['answer_text'] ?? '';
                 
-                // Find correct answer and process student answer
-                foreach ($options as $opt) {
-                    if ($opt['is_correct'] == '1') {
-                        $correctAnswer = $opt['option_text'];
+                // Handle missing student_answers record
+                $hasStudentAnswer = !empty($question['answer_text']) || !empty($question['selected_option_id']);
+                
+                // Find correct answer from options
+                if (!empty($options)) {
+                    foreach ($options as $opt) {
+                        if ($opt['is_correct'] == '1') {
+                            $correctAnswer = $opt['option_text'];
+                            break;
+                        }
                     }
-                    
-                    if ($question['selected_option_id'] && $opt['id'] == $question['selected_option_id']) {
-                        $studentAnswerText = $opt['option_text'];
+                }
+                
+                // Process student answer
+                if ($question['selected_option_id'] && !empty($options)) {
+                    foreach ($options as $opt) {
+                        if ($opt['id'] == $question['selected_option_id']) {
+                            $studentAnswerText = $opt['option_text'];
+                            break;
+                        }
                     }
                 }
                 
@@ -1396,7 +1700,11 @@ public function saveStudentAnswer($attemptId, $questionId, $answer): bool
                 // Determine if answer is actually correct
                 $isActuallyCorrect = false;
                 
-                if ($question['question_type'] === 'multiple_choice') {
+                if (!$hasStudentAnswer) {
+                    // No student answer recorded - treat as incorrect
+                    $isActuallyCorrect = false;
+                    $studentAnswerText = 'No answer recorded';
+                } elseif ($question['question_type'] === 'multiple_choice') {
                     if ($question['selected_option_id'] && $correctAnswer) {
                         foreach ($options as $opt) {
                             if ($opt['id'] == $question['selected_option_id'] && $opt['is_correct'] == '1') {
@@ -1425,19 +1733,54 @@ public function saveStudentAnswer($attemptId, $questionId, $answer): bool
                     }
                 }
                 
+                // Handle faculty override
+                $currentScore = $isActuallyCorrect ? $question['question_points'] : 0;
+                $facultyOverride = null;
+                
+                if ($question['override_score'] !== null) {
+                    $currentScore = (float)$question['override_score'];
+                    $isActuallyCorrect = $currentScore > 0;
+                    $facultyOverride = [
+                        'overridden' => true,
+                        'original_score' => $question['student_answer_score'] ?? 0,
+                        'new_score' => $currentScore,
+                        'reason' => $question['override_reason'],
+                        'faculty_name' => $question['override_faculty_name'],
+                        'overridden_at' => $question['overridden_at']
+                    ];
+                }
+                
                 if ($isActuallyCorrect) {
                     $actualCorrectCount++;
                 }
                 
+                // Get AI grading data for essays (if not already handled by override)
+                $aiGrading = null;
+                if ($question['question_type'] === 'essay' && !$facultyOverride) {
+                    // Get AI grading result
+                    $aiGrading = $this->getAIGradingResult($attemptId, $question['question_id']);
+                    
+                    // Use AI score if available
+                    if ($aiGrading) {
+                        $currentScore = $aiGrading['ai_score'];
+                        $isActuallyCorrect = $currentScore > 0;
+                    }
+                }
+                
                 $processedQuestions[] = [
-                    'question_id' => $question['question_id'],
+                    'question_id' => (int)$question['question_id'],
                     'question_text' => $question['question_text'],
                     'question_type' => $question['question_type'],
                     'student_answer' => $studentAnswerText ?: 'No answer',
                     'correct_answer' => $correctAnswer ?: 'N/A',
                     'is_correct' => $isActuallyCorrect,
                     'points' => $question['question_points'],
-                    'points_earned' => $isActuallyCorrect ? $question['question_points'] : 0
+                    'max_points' => $question['question_points'],
+                    'score' => $currentScore,
+                    'points_earned' => $currentScore,
+                    'ai_grading' => $aiGrading,
+                    'faculty_override' => $facultyOverride,
+                    'has_student_answer' => $hasStudentAnswer
                 ];
             }
             
@@ -1534,4 +1877,339 @@ public function saveStudentAnswer($attemptId, $questionId, $answer): bool
         // Return as-is if no pattern matches
         return $yearLevel;
     }
+
+    /**
+     * Get question by ID
+     */
+    public function getQuestionById($questionId)
+    {
+        try {
+            // Use direct database query since findById doesn't exist
+            $db = \App\Config\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("SELECT * FROM questions WHERE id = ?");
+            $stmt->execute([$questionId]);
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Error getting question by ID: " . $e->getMessage());
+            return null;
+        }
+    }
+
+
+    /**
+     * Override question score for a specific attempt
+     */
+    public function overrideQuestionScore($attemptId, $questionId, $newScore, $reason, $facultyId)
+    {
+        try {
+            error_log("=== OVERRIDE QUESTION SCORE START ===");
+            error_log("Attempt ID: $attemptId, Question ID: $questionId, New Score: $newScore");
+            
+            // First, check if there's already an override record
+            $db = \App\Config\Database::getInstance()->getConnection();
+            
+            // Check if override already exists
+            $stmt = $db->prepare("
+                SELECT id FROM faculty_score_overrides 
+                WHERE attempt_id = ? AND question_id = ?
+            ");
+            $stmt->execute([$attemptId, $questionId]);
+            $existingOverride = $stmt->fetch();
+            
+            if ($existingOverride) {
+                error_log("Updating existing override");
+                // Update existing override
+                $stmt = $db->prepare("
+                    UPDATE faculty_score_overrides 
+                    SET new_score = ?, reason = ?, overridden_by = ?, overridden_at = NOW()
+                    WHERE attempt_id = ? AND question_id = ?
+                ");
+                $result = $stmt->execute([$newScore, $reason, $facultyId, $attemptId, $questionId]);
+            } else {
+                error_log("Creating new override record");
+                // Get original AI score if it exists
+                $stmt = $db->prepare("
+                    SELECT score FROM student_answers 
+                    WHERE attempt_id = ? AND question_id = ?
+                ");
+                $stmt->execute([$attemptId, $questionId]);
+                $originalAnswer = $stmt->fetch();
+                $originalScore = $originalAnswer ? $originalAnswer['score'] : 0;
+                
+                error_log("Original score: $originalScore");
+                
+                // Create new override record
+                $stmt = $db->prepare("
+                    INSERT INTO faculty_score_overrides 
+                    (attempt_id, question_id, original_score, new_score, reason, overridden_by, overridden_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW())
+                ");
+                $result = $stmt->execute([$attemptId, $questionId, $originalScore, $newScore, $reason, $facultyId]);
+            }
+            
+            if ($result) {
+                error_log("Override record saved successfully");
+                
+                // Check if student_answers record exists, if not create it
+                $stmt = $db->prepare("
+                    SELECT id FROM student_answers 
+                    WHERE attempt_id = ? AND question_id = ?
+                ");
+                $stmt->execute([$attemptId, $questionId]);
+                $answerExists = $stmt->fetch();
+                
+                if ($answerExists) {
+                    // Update existing student_answers record
+                    $stmt = $db->prepare("
+                        UPDATE student_answers 
+                        SET score = ?, is_correct = (? > 0)
+                        WHERE attempt_id = ? AND question_id = ?
+                    ");
+                    $updateResult = $stmt->execute([$newScore, $newScore, $attemptId, $questionId]);
+                    error_log("Updated existing student_answers record: " . ($updateResult ? 'success' : 'failed'));
+                } else {
+                    // Create student_answers record if it doesn't exist
+                    error_log("Creating missing student_answers record");
+                    $stmt = $db->prepare("
+                        INSERT INTO student_answers 
+                        (attempt_id, question_id, answer_text, score, is_correct, created_at)
+                        VALUES (?, ?, 'Faculty Override', ?, (? > 0), NOW())
+                    ");
+                    $insertResult = $stmt->execute([$attemptId, $questionId, $newScore, $newScore]);
+                    error_log("Created student_answers record: " . ($insertResult ? 'success' : 'failed'));
+                }
+                
+                // Recalculate total exam score
+                error_log("Recalculating exam score");
+                $recalcResult = $this->recalculateExamScore($attemptId);
+                error_log("Recalculation result: " . json_encode($recalcResult));
+                
+                return true;
+            }
+            
+            error_log("Failed to save override record");
+            return false;
+            
+        } catch (\Exception $e) {
+            error_log("=== OVERRIDE ERROR ===");
+            error_log("Error overriding question score: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return false;
+        }
+    }
+
+/**
+ * Process answers with AI grading for essays
+ */
+private function processAnswersWithAI($attemptId, $answers)
+{
+    try {
+        // Get exam attempt to find exam ID
+        $attempt = $this->examAttemptDAO->getAttemptById($attemptId);
+        if (!$attempt) {
+            return;
+        }
+        
+        // Get exam questions
+        $questions = $this->getExamQuestions($attempt['exam_id']);
+        
+        // Initialize AI service
+        $aiService = new \App\Services\AIEssayService();
+        
+        foreach ($answers as $questionId => $answer) {
+            // Find the question
+            $question = null;
+            foreach ($questions as $q) {
+                if ($q->getId() == $questionId) {
+                    $question = $q;
+                    break;
+                }
+            }
+            
+            if ($question && $question->getQuestionType() === 'essay' && !empty($answer)) {
+                // Get AI configuration from question
+                $aiConfig = $this->getQuestionAIConfig($questionId);
+                
+                if ($aiConfig && $aiConfig['grading_method'] !== 'manual') {
+                    // Grade essay with AI
+                    $maxPoints = $question->getPoints() ?? 10;
+                    $gradingResult = $aiService->gradeEssay($answer, $aiConfig, $maxPoints);
+                    
+                    // Save AI grading result
+                    $this->saveAIGradingResult($attemptId, $questionId, $gradingResult);
+                    
+                    // Update student answer with AI score
+                    $this->updateStudentAnswerScore($attemptId, $questionId, $gradingResult['ai_score']);
+                }
+            }
+        }
+    } catch (\Exception $e) {
+        error_log("Error processing answers with AI: " . $e->getMessage());
+    }
+}
+
+/**
+ * Get AI configuration for a question
+ */
+private function getQuestionAIConfig($questionId)
+{
+    try {
+        $db = \App\Config\Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT ai_config FROM questions WHERE id = ?");
+        $stmt->execute([$questionId]);
+        $result = $stmt->fetch();
+        
+        if ($result && $result['ai_config']) {
+            return json_decode($result['ai_config'], true);
+        }
+        
+        return null;
+    } catch (\Exception $e) {
+        error_log("Error getting question AI config: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Save AI grading result
+ */
+private function saveAIGradingResult($attemptId, $questionId, $gradingResult)
+{
+    try {
+        $db = \App\Config\Database::getInstance()->getConnection();
+        
+        $stmt = $db->prepare("
+            INSERT INTO ai_grading_results 
+            (attempt_id, question_id, ai_score, max_points, confidence, criterion_scores, 
+             overall_feedback, strengths, improvements, requires_manual_review, review_reason)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            ai_score = VALUES(ai_score),
+            confidence = VALUES(confidence),
+            criterion_scores = VALUES(criterion_scores),
+            overall_feedback = VALUES(overall_feedback),
+            strengths = VALUES(strengths),
+            improvements = VALUES(improvements),
+            requires_manual_review = VALUES(requires_manual_review),
+            review_reason = VALUES(review_reason)
+        ");
+        
+        $stmt->execute([
+            $attemptId,
+            $questionId,
+            $gradingResult['ai_score'] ?? 0,
+            $gradingResult['max_points'] ?? 10,
+            $gradingResult['confidence'] ?? 0,
+            json_encode($gradingResult['criterion_scores'] ?? []),
+            $gradingResult['overall_feedback'] ?? '',
+            json_encode($gradingResult['strengths'] ?? []),
+            json_encode($gradingResult['improvements'] ?? []),
+            $gradingResult['requires_manual_review'] ? 1 : 0,
+            $gradingResult['review_reason'] ?? ''
+        ]);
+        
+    } catch (\Exception $e) {
+        error_log("Error saving AI grading result: " . $e->getMessage());
+    }
+}
+
+/**
+ * Update student answer score
+ */
+private function updateStudentAnswerScore($attemptId, $questionId, $score)
+{
+    try {
+        $db = \App\Config\Database::getInstance()->getConnection();
+        
+        $stmt = $db->prepare("
+            UPDATE student_answers 
+            SET score = ?, is_correct = (? > 0)
+            WHERE attempt_id = ? AND question_id = ?
+        ");
+        
+        $stmt->execute([$score, $score, $attemptId, $questionId]);
+        
+    } catch (\Exception $e) {
+        error_log("Error updating student answer score: " . $e->getMessage());
+    }
+}
+
+/**
+ * Get AI grading result for a question
+ */
+private function getAIGradingResult($attemptId, $questionId)
+{
+    try {
+        $db = \App\Config\Database::getInstance()->getConnection();
+        
+        $stmt = $db->prepare("
+            SELECT ai_score, max_points, confidence, criterion_scores, 
+                   overall_feedback, strengths, improvements, requires_manual_review, 
+                   review_reason, graded_at
+            FROM ai_grading_results 
+            WHERE attempt_id = ? AND question_id = ?
+        ");
+        
+        $stmt->execute([$attemptId, $questionId]);
+        $result = $stmt->fetch();
+        
+        if ($result) {
+            return [
+                'graded_by_ai' => true,
+                'ai_score' => (float)$result['ai_score'],
+                'max_points' => (float)$result['max_points'],
+                'confidence' => (int)$result['confidence'],
+                'criterion_scores' => json_decode($result['criterion_scores'], true),
+                'overall_feedback' => $result['overall_feedback'],
+                'strengths' => json_decode($result['strengths'], true),
+                'improvements' => json_decode($result['improvements'], true),
+                'requires_manual_review' => (bool)$result['requires_manual_review'],
+                'review_reason' => $result['review_reason'],
+                'graded_at' => $result['graded_at']
+            ];
+        }
+        
+        return null;
+    } catch (\Exception $e) {
+        error_log("Error getting AI grading result: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Get faculty override for a question
+ */
+private function getFacultyOverride($attemptId, $questionId)
+{
+    try {
+        $db = \App\Config\Database::getInstance()->getConnection();
+        
+        $stmt = $db->prepare("
+            SELECT fso.original_score, fso.new_score, fso.reason, 
+                   fso.overridden_at, u.full_name as faculty_name
+            FROM faculty_score_overrides fso
+            INNER JOIN users u ON fso.overridden_by = u.user_id
+            WHERE fso.attempt_id = ? AND fso.question_id = ?
+        ");
+        
+        $stmt->execute([$attemptId, $questionId]);
+        $result = $stmt->fetch();
+        
+        if ($result) {
+            return [
+                'overridden' => true,
+                'original_score' => (float)$result['original_score'],
+                'new_score' => (float)$result['new_score'],
+                'reason' => $result['reason'],
+                'faculty_name' => $result['faculty_name'],
+                'overridden_at' => $result['overridden_at']
+            ];
+        }
+        
+        return null;
+    } catch (\Exception $e) {
+        error_log("Error getting faculty override: " . $e->getMessage());
+        return null;
+    }
+}
 }

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Update Fix Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-3xl font-bold mb-6 text-center">🔧 FINAL UPDATE FIX TEST</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-blue-50 p-6 rounded-lg">
+                    <h2 class="text-xl font-bold mb-4">Test Controls</h2>
+                    <div class="space-y-3">
+                        <button onclick="testDirectUpdate()" 
+                                class="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700">
+                            🎯 Test Direct Update (Edit Mode)
+                        </button>
+                        <button onclick="checkExamCount()" 
+                                class="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700">
+                            📊 Check Exam Count
+                        </button>
+                        <button onclick="clearLogs()" 
+                                class="w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700">
+                            🗑️ Clear Logs
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-green-50 p-6 rounded-lg">
+                    <h2 class="text-xl font-bold mb-4">Expected Result</h2>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center">
+                            <span class="w-4 h-4 bg-green-500 rounded-full mr-2"></span>
+                            <span>Existing exam gets updated</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-4 h-4 bg-green-500 rounded-full mr-2"></span>
+                            <span>No new exam created</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-4 h-4 bg-green-500 rounded-full mr-2"></span>
+                            <span>Stays in 1st year</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-4 h-4 bg-green-500 rounded-full mr-2"></span>
+                            <span>Assignment data preserved</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-black rounded-lg p-6">
+                <h2 class="text-xl font-bold text-white mb-4">🔍 Debug Log</h2>
+                <div id="log" class="text-green-400 font-mono text-sm h-96 overflow-y-auto">
+                    Ready to test final fix...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let examCountBefore = 0;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: 'text-blue-400',
+                success: 'text-green-400',
+                error: 'text-red-400',
+                warning: 'text-yellow-400'
+            };
+            
+            const colorClass = colors[type] || 'text-gray-400';
+            logDiv.innerHTML += `<div class="${colorClass}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('log').innerHTML = 'Logs cleared...';
+        }
+
+        async function checkExamCount() {
+            try {
+                log('📊 Checking current exam count...', 'info');
+                
+                const response = await fetch('/faculty/exams');
+                const html = await response.text();
+                
+                const examMatches = html.match(/data-exam-id="(\d+)"/g);
+                const count = examMatches ? examMatches.length : 0;
+                
+                log(`📋 Current exam count: ${count}`, 'success');
+                examCountBefore = count;
+                
+                if (examMatches) {
+                    examMatches.forEach((match, index) => {
+                        const examId = match.match(/\d+/)[0];
+                        log(`   Exam ${index + 1}: ID ${examId}`, 'info');
+                    });
+                }
+                
+                return count;
+            } catch (error) {
+                log(`❌ Error checking exam count: ${error.message}`, 'error');
+                return 0;
+            }
+        }
+
+        async function testDirectUpdate() {
+            try {
+                log('🚀 TESTING DIRECT UPDATE (EDIT MODE)...', 'warning');
+                
+                // Step 1: Check exam count before
+                const countBefore = await checkExamCount();
+                log(`📊 Exams before update: ${countBefore}`, 'info');
+                
+                // Step 2: Get an exam to update
+                const listResponse = await fetch('/faculty/exams');
+                const html = await listResponse.text();
+                
+                const examMatch = html.match(/data-exam-id="(\d+)"/);
+                if (!examMatch) {
+                    log('❌ No exams found to update', 'error');
+                    return;
+                }
+                
+                const examId = examMatch[1];
+                log(`🎯 Testing update on exam ID: ${examId}`, 'info');
+                
+                // Step 3: Get existing exam data
+                log('📋 Getting existing exam data...', 'info');
+                const editResponse = await fetch(`/faculty/exam/${examId}/edit`);
+                const editHtml = await editResponse.text();
+                
+                const existingDataMatch = editHtml.match(/window\.existingExamData = ({[^;]+});/);
+                if (!existingDataMatch) {
+                    log('❌ Could not extract existing exam data', 'error');
+                    return;
+                }
+                
+                const existingData = JSON.parse(existingDataMatch[1]);
+                log('✅ Existing exam data extracted:', 'success');
+                log(`   Title: ${existingData.title}`, 'info');
+                log(`   Year Level: ${existingData.year_level}`, 'info');
+                log(`   Section: ${existingData.section}`, 'info');
+                
+                // Step 4: Prepare update data (simulating frontend)
+                const updateData = {
+                    exam_id: examId,
+                    title: existingData.title + ' (UPDATED ' + new Date().toLocaleTimeString() + ')',
+                    description: existingData.description || 'Updated description',
+                    subject_id: existingData.subject_id,
+                    exam_type: existingData.exam_type,
+                    time_limit: existingData.time_limit,
+                    start_date: existingData.start_date,
+                    end_date: existingData.end_date,
+                    is_active: existingData.is_active ? 1 : 0,
+                    instructions: existingData.instructions || 'Updated instructions',
+                    // CRITICAL: Include assignment data that should be preserved
+                    year_level: existingData.year_level,
+                    section: existingData.section,
+                    academic_year: existingData.academic_year,
+                    semester: existingData.semester,
+                    questions: []
+                };
+                
+                log('📤 Sending update request...', 'info');
+                log(`   Endpoint: /faculty/exam/${examId}/update`, 'info');
+                log(`   Assignment data: ${existingData.year_level} - Section ${existingData.section}`, 'info');
+                
+                // Step 5: Send update request
+                const updateResponse = await fetch(`/faculty/exam/${examId}/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                log(`📡 Update response status: ${updateResponse.status}`, 'info');
+                
+                if (updateResponse.ok) {
+                    const result = await updateResponse.json();
+                    log('✅ Update request successful!', 'success');
+                    log(`   Result: ${JSON.stringify(result)}`, 'success');
+                    
+                    // Step 6: Check exam count after
+                    setTimeout(async () => {
+                        const countAfter = await checkExamCount();
+                        log(`📊 Exams after update: ${countAfter}`, 'info');
+                        
+                        if (countAfter === countBefore) {
+                            log('🎉 SUCCESS! No new exam created - existing exam was updated!', 'success');
+                        } else {
+                            log(`❌ FAILED! New exam created. Before: ${countBefore}, After: ${countAfter}`, 'error');
+                        }
+                    }, 1000);
+                    
+                } else {
+                    const errorText = await updateResponse.text();
+                    log(`❌ Update failed: ${errorText}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🔧 Final update fix test initialized', 'success');
+            log('📋 Click "Check Exam Count" first, then "Test Direct Update"', 'info');
+        });
+    </script>
+</body>
+</html>

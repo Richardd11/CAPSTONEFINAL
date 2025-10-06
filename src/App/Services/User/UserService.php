@@ -297,4 +297,114 @@ class UserService implements UserServiceInterface
     {
         return empty($this->validate($user));
     }
+
+    /**
+     * Sort users by role hierarchy and additional criteria
+     * This method contains the business logic for user ordering
+     */
+    public function sortUsers(array $users): array
+    {
+        usort($users, function($a, $b) {
+            $roleOrder = ['admin' => 1, 'faculty' => 2, 'student' => 3];
+            $aRole = $roleOrder[$a->getRole()] ?? 4;
+            $bRole = $roleOrder[$b->getRole()] ?? 4;
+            
+            // Primary sort: by role hierarchy
+            if ($aRole !== $bRole) {
+                return $aRole - $bRole;
+            }
+            
+            // Secondary sort: for students, sort by year level and section
+            if ($a->getRole() === 'student' && $b->getRole() === 'student') {
+                $yearCompare = strcmp($a->getYearLevel(), $b->getYearLevel());
+                if ($yearCompare !== 0) return $yearCompare;
+                return strcmp($a->getSection(), $b->getSection());
+            }
+            
+            // Tertiary sort: by full name for same roles
+            return strcmp($a->getFullName(), $b->getFullName());
+        });
+        
+        return $users;
+    }
+
+    /**
+     * Get users sorted by role and other criteria
+     */
+    public function getAllUsersSorted(): array
+    {
+        $users = $this->getAllUsers();
+        return $this->sortUsers($users);
+    }
+
+    /**
+     * Prepare user data for view presentation
+     * This method handles the data transformation for views
+     */
+    public function prepareUsersForView(array $users): array
+    {
+        $preparedUsers = [];
+        
+        foreach ($users as $user) {
+            $userData = [
+                'user_id' => $user->getUserId(),
+                'school_id' => $user->getSchoolId(),
+                'full_name' => $user->getFullName(),
+                'role' => $user->getRole(),
+                'year_level' => $user->getYearLevel(),
+                'section' => $user->getSection(),
+                'created_at' => $user->getCreatedAt(),
+                // Add computed properties for view
+                'role_badge_class' => $this->getRoleBadgeClass($user->getRole()),
+                'role_icon' => $this->getRoleIcon($user->getRole()),
+                'avatar_gradient' => $this->getAvatarGradient($user->getRole())
+            ];
+            
+            $preparedUsers[] = $userData;
+        }
+        
+        return $preparedUsers;
+    }
+
+    /**
+     * Get CSS class for role badge
+     */
+    private function getRoleBadgeClass(string $role): string
+    {
+        $classes = [
+            'admin' => 'bg-red-100 text-red-700',
+            'faculty' => 'bg-purple-100 text-purple-700',
+            'student' => 'bg-blue-100 text-blue-700'
+        ];
+        
+        return $classes[$role] ?? 'bg-gray-100 text-gray-700';
+    }
+
+    /**
+     * Get icon for user role
+     */
+    private function getRoleIcon(string $role): string
+    {
+        $icons = [
+            'admin' => 'fa-user-shield',
+            'faculty' => 'fa-chalkboard-teacher',
+            'student' => 'fa-user-graduate'
+        ];
+        
+        return $icons[$role] ?? 'fa-user';
+    }
+
+    /**
+     * Get avatar gradient for user role
+     */
+    private function getAvatarGradient(string $role): string
+    {
+        $gradients = [
+            'admin' => 'from-red-400 to-red-600',
+            'faculty' => 'from-purple-400 to-purple-600',
+            'student' => 'from-blue-400 to-blue-600'
+        ];
+        
+        return $gradients[$role] ?? 'from-gray-400 to-gray-600';
+    }
 }

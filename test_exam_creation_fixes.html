@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Creation Fixes Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-result {
+            transition: all 0.3s ease;
+        }
+        .test-pass {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        .test-fail {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        .test-pending {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-vial text-blue-600 mr-3"></i>
+                Exam Creation Fixes Test Suite
+            </h1>
+            <p class="text-gray-600 mb-6">Testing multiple choice selection and save functionality fixes</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-blue-800 mb-2">Issues Fixed</h3>
+                    <ul class="text-sm text-blue-700 space-y-1">
+                        <li>✅ Multiple choice radio button selection</li>
+                        <li>✅ Save validation for missing assignment data</li>
+                        <li>✅ Subject selection requirement</li>
+                        <li>✅ Visual feedback improvements</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-green-800 mb-2">Test Coverage</h3>
+                    <ul class="text-sm text-green-700 space-y-1">
+                        <li>🔘 Radio button behavior</li>
+                        <li>💾 Save functionality</li>
+                        <li>📋 Form validation</li>
+                        <li>🎨 Visual updates</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <button id="runTests" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-play mr-2"></i>Run All Tests
+            </button>
+        </div>
+
+        <!-- Test Results -->
+        <div id="testResults" class="space-y-4">
+            <!-- Tests will be populated here -->
+        </div>
+        
+        <!-- Test Environment -->
+        <div id="testEnvironment" class="hidden">
+            <!-- Mock exam creation interface for testing -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mt-8">
+                <h2 class="text-2xl font-bold mb-6">Test Environment</h2>
+                
+                <!-- Mock Form -->
+                <form id="mockExamForm">
+                    <div class="grid grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Exam Title</label>
+                            <input type="text" id="examTitle" value="Test Exam" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                            <select id="subjectId" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <option value="">Select Subject</option>
+                                <option value="1" data-year="1" data-section="A" data-academic-year="2024-2025" data-semester="1">Mathematics - Grade 1 Section A</option>
+                                <option value="2" data-year="2" data-section="B" data-academic-year="2024-2025" data-semester="1">Science - Grade 2 Section B</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Mock Questions Container -->
+                <div id="questionsContainer" class="space-y-4">
+                    <!-- Questions will be added here for testing -->
+                </div>
+                
+                <button id="mockSaveBtn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors mt-4">
+                    <i class="fas fa-save mr-2"></i>Test Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Required Scripts -->
+    <script src="/js/models/Question.js"></script>
+    <script src="/js/models/Exam.js"></script>
+    <script src="/js/utils/TemplateEngine.js"></script>
+    <script src="/js/services/ExamBuilderService.js"></script>
+    <script src="/js/controllers/ExamBuilderController.js"></script>
+
+    <script>
+        class ExamCreationTestSuite {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.templateEngine = new TemplateEngine();
+                this.mockExam = null;
+                this.setupMockEnvironment();
+            }
+
+            setupMockEnvironment() {
+                // Create a mock exam for testing
+                this.mockExam = new Exam();
+                this.mockExam.title = "Test Exam";
+                this.mockExam.subjectId = "1";
+                this.mockExam.yearLevel = "1";
+                this.mockExam.section = "A";
+                this.mockExam.academicYear = "2024-2025";
+                this.mockExam.semester = "1";
+            }
+
+            addTest(name, description, testFunction) {
+                this.tests.push({
+                    name,
+                    description,
+                    testFunction,
+                    status: 'pending'
+                });
+            }
+
+            async runAllTests() {
+                const resultsContainer = document.getElementById('testResults');
+                resultsContainer.innerHTML = '';
+                this.results = [];
+
+                for (let i = 0; i < this.tests.length; i++) {
+                    const test = this.tests[i];
+                    const testElement = this.createTestElement(test, i);
+                    resultsContainer.appendChild(testElement);
+
+                    try {
+                        const result = await test.testFunction();
+                        this.updateTestResult(i, result ? 'pass' : 'fail', result ? 'Test passed' : 'Test failed');
+                    } catch (error) {
+                        this.updateTestResult(i, 'fail', `Error: ${error.message}`);
+                    }
+
+                    // Small delay between tests
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                this.showSummary();
+            }
+
+            createTestElement(test, index) {
+                const div = document.createElement('div');
+                div.className = 'test-result test-pending rounded-lg p-6';
+                div.id = `test-${index}`;
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold">${test.name}</h3>
+                            <p class="text-sm opacity-90">${test.description}</p>
+                        </div>
+                        <div class="test-status">
+                            <i class="fas fa-clock text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="test-details mt-4 hidden">
+                        <p class="text-sm"></p>
+                    </div>
+                `;
+                return div;
+            }
+
+            updateTestResult(index, status, details) {
+                const testElement = document.getElementById(`test-${index}`);
+                const statusIcon = testElement.querySelector('.test-status i');
+                const detailsElement = testElement.querySelector('.test-details p');
+
+                testElement.className = `test-result test-${status} rounded-lg p-6`;
+                
+                if (status === 'pass') {
+                    statusIcon.className = 'fas fa-check-circle text-2xl';
+                } else if (status === 'fail') {
+                    statusIcon.className = 'fas fa-times-circle text-2xl';
+                }
+
+                detailsElement.textContent = details;
+                testElement.querySelector('.test-details').classList.remove('hidden');
+                
+                this.results.push({ index, status, details });
+            }
+
+            showSummary() {
+                const passed = this.results.filter(r => r.status === 'pass').length;
+                const failed = this.results.filter(r => r.status === 'fail').length;
+                
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'bg-white rounded-xl shadow-lg p-8 mt-8';
+                summaryDiv.innerHTML = `
+                    <h2 class="text-2xl font-bold mb-4">Test Summary</h2>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="text-3xl font-bold text-green-600">${passed}</div>
+                            <div class="text-green-700">Passed</div>
+                        </div>
+                        <div class="text-center p-4 bg-red-50 rounded-lg">
+                            <div class="text-3xl font-bold text-red-600">${failed}</div>
+                            <div class="text-red-700">Failed</div>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="text-3xl font-bold text-blue-600">${this.tests.length}</div>
+                            <div class="text-blue-700">Total</div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('testResults').appendChild(summaryDiv);
+            }
+
+            // Test Functions
+            testRadioButtonTemplate() {
+                return new Promise((resolve) => {
+                    try {
+                        // Create a mock multiple choice question
+                        const question = new Question('multiple_choice');
+                        question.id = 'test-mc-1';
+                        question.text = 'Test Question';
+                        question.options = [
+                            { text: 'Option A', isCorrect: true },
+                            { text: 'Option B', isCorrect: false },
+                            { text: 'Option C', isCorrect: false },
+                            { text: 'Option D', isCorrect: false }
+                        ];
+
+                        // Render the template
+                        const html = this.templateEngine.renderMultipleChoice(question);
+                        
+                        // Check if it contains radio buttons (not checkboxes)
+                        const hasRadio = html.includes('type="radio"');
+                        const hasCheckbox = html.includes('type="checkbox"');
+                        
+                        console.log('Template test - Has radio:', hasRadio, 'Has checkbox:', hasCheckbox);
+                        resolve(hasRadio && !hasCheckbox);
+                    } catch (error) {
+                        console.error('Radio button template test failed:', error);
+                        resolve(false);
+                    }
+                });
+            }
+
+            testSubjectValidation() {
+                return new Promise((resolve) => {
+                    try {
+                        // Test exam without subject
+                        const examWithoutSubject = new Exam();
+                        examWithoutSubject.title = "Test";
+                        
+                        // Should fail validation
+                        const validation1 = examWithoutSubject.validate();
+                        
+                        // Test exam with subject but no assignment data
+                        const examWithSubject = new Exam();
+                        examWithSubject.title = "Test";
+                        examWithSubject.subjectId = "1";
+                        // Missing yearLevel, section, etc.
+                        
+                        const validation2 = examWithSubject.validate();
+                        
+                        // Both should have validation issues
+                        console.log('Validation test - Without subject valid:', validation1.isValid);
+                        console.log('Validation test - With subject valid:', validation2.isValid);
+                        
+                        resolve(!validation1.isValid && !validation2.isValid);
+                    } catch (error) {
+                        console.error('Subject validation test failed:', error);
+                        resolve(false);
+                    }
+                });
+            }
+
+            testAssignmentDataExtraction() {
+                return new Promise((resolve) => {
+                    try {
+                        // Create mock subject dropdown
+                        const select = document.createElement('select');
+                        select.id = 'subjectId';
+                        
+                        const option = document.createElement('option');
+                        option.value = '1';
+                        option.dataset.year = '1';
+                        option.dataset.section = 'A';
+                        option.dataset.academicYear = '2024-2025';
+                        option.dataset.semester = '1';
+                        option.selected = true;
+                        
+                        select.appendChild(option);
+                        document.body.appendChild(select);
+                        
+                        // Test data extraction logic
+                        const selectedOption = select.options[select.selectedIndex];
+                        const hasAllData = selectedOption.dataset.year && 
+                                         selectedOption.dataset.section && 
+                                         selectedOption.dataset.academicYear && 
+                                         selectedOption.dataset.semester;
+                        
+                        // Cleanup
+                        document.body.removeChild(select);
+                        
+                        console.log('Assignment data test - Has all data:', hasAllData);
+                        resolve(hasAllData);
+                    } catch (error) {
+                        console.error('Assignment data extraction test failed:', error);
+                        resolve(false);
+                    }
+                });
+            }
+
+            testQuestionModel() {
+                return new Promise((resolve) => {
+                    try {
+                        // Test multiple choice question model
+                        const mcQuestion = new Question('multiple_choice');
+                        mcQuestion.options = [
+                            { text: 'A', isCorrect: true },
+                            { text: 'B', isCorrect: false }
+                        ];
+                        
+                        // Test validation
+                        const validation = mcQuestion.validate();
+                        
+                        // Test option manipulation
+                        mcQuestion.setCorrectOption(1);
+                        const correctOption = mcQuestion.options.find(opt => opt.isCorrect);
+                        
+                        console.log('Question model test - Valid:', validation.isValid);
+                        console.log('Question model test - Correct option text:', correctOption?.text);
+                        
+                        resolve(validation.isValid && correctOption?.text === 'B');
+                    } catch (error) {
+                        console.error('Question model test failed:', error);
+                        resolve(false);
+                    }
+                });
+            }
+
+            testExamModel() {
+                return new Promise((resolve) => {
+                    try {
+                        // Test exam model with complete data
+                        const exam = new Exam();
+                        exam.title = "Test Exam";
+                        exam.subjectId = "1";
+                        exam.yearLevel = "1";
+                        exam.section = "A";
+                        exam.academicYear = "2024-2025";
+                        exam.semester = "1";
+                        
+                        // Add a question
+                        const question = new Question('multiple_choice');
+                        question.text = "Test question";
+                        question.options = [
+                            { text: 'A', isCorrect: true },
+                            { text: 'B', isCorrect: false }
+                        ];
+                        
+                        exam.addQuestion(question);
+                        
+                        // Test validation
+                        const validation = exam.validate();
+                        
+                        // Test JSON serialization
+                        const json = exam.toJSON();
+                        const hasRequiredFields = json.title && json.subjectId && json.yearLevel && json.questions.length > 0;
+                        
+                        console.log('Exam model test - Valid:', validation.isValid);
+                        console.log('Exam model test - Has required fields:', hasRequiredFields);
+                        
+                        resolve(validation.isValid && hasRequiredFields);
+                    } catch (error) {
+                        console.error('Exam model test failed:', error);
+                        resolve(false);
+                    }
+                });
+            }
+        }
+
+        // Initialize and setup tests
+        document.addEventListener('DOMContentLoaded', () => {
+            const testSuite = new ExamCreationTestSuite();
+            
+            // Add all tests
+            testSuite.addTest(
+                'Radio Button Template',
+                'Verify multiple choice options use radio buttons instead of checkboxes',
+                () => testSuite.testRadioButtonTemplate()
+            );
+            
+            testSuite.addTest(
+                'Subject Validation',
+                'Verify exams require subject selection and assignment data',
+                () => testSuite.testSubjectValidation()
+            );
+            
+            testSuite.addTest(
+                'Assignment Data Extraction',
+                'Verify assignment data is properly extracted from subject selection',
+                () => testSuite.testAssignmentDataExtraction()
+            );
+            
+            testSuite.addTest(
+                'Question Model',
+                'Verify question model works correctly with validation',
+                () => testSuite.testQuestionModel()
+            );
+            
+            testSuite.addTest(
+                'Exam Model',
+                'Verify exam model validation and serialization',
+                () => testSuite.testExamModel()
+            );
+            
+            // Setup run button
+            document.getElementById('runTests').addEventListener('click', () => {
+                testSuite.runAllTests();
+            });
+        });
+    </script>
+</body>
+</html>

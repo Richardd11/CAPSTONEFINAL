@@ -6,6 +6,7 @@
     <title>Edit Exam - <?= htmlspecialchars($exam->getTitle()) ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/modern-animations.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         html { font-size: 16px; }
@@ -153,7 +154,7 @@
         <div class="container mx-auto px-6 relative z-10">
             <div class="flex justify-between items-center">
                 <div class="flex items-center">
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exams" 
+                    <a href="/faculty/exams" 
                        class="mr-6 p-2 rounded-full hover:bg-white/20 transition-all duration-300 group">
                         <i class="fas fa-arrow-left text-xl group-hover:transform group-hover:-translate-x-1 transition-transform"></i>
                     </a>
@@ -398,8 +399,29 @@
                             </button>
                         </div>
                     <?php else: ?>
-                        <!-- Load existing questions -->
+                        <!-- Load existing exam data -->
                         <script>
+                            // Pre-load existing exam data
+                            window.existingExamData = <?= json_encode([
+                                'id' => $exam->getId(),
+                                'title' => $exam->getTitle(),
+                                'description' => $exam->getDescription(),
+                                'subject_id' => $exam->getSubjectId(),
+                                'exam_type' => $exam->getExamType(),
+                                'time_limit' => $exam->getTimeLimit(),
+                                'start_date' => $exam->getStartDate(),
+                                'end_date' => $exam->getEndDate(),
+                                'is_active' => $exam->getIsActive(),
+                                'instructions' => $exam->getInstructions(),
+                                'total_points' => $exam->getTotalPoints(),
+                                // CRITICAL: Include assignment data to prevent exam moving to wrong year
+                                'year_level' => $exam->getYearLevel(),
+                                'section' => $exam->getSection(),
+                                'academic_year' => $exam->getAcademicYear(),
+                                'semester' => $exam->getSemester(),
+                                'faculty_id' => $exam->getFacultyId()
+                            ]) ?>;
+                            
                             // Pre-load existing questions
                             window.existingQuestions = <?= json_encode(array_map(function($q) {
                                 $questionData = [
@@ -419,6 +441,9 @@
                                             'is_correct' => $option->getIsCorrect()
                                         ];
                                     }
+                                } elseif ($q->getQuestionType() === 'true_false') {
+                                    // Add correct answer for true/false questions
+                                    $questionData['correct_answer'] = $q->getCorrectAnswer();
                                 }
                                 
                                 return $questionData;
@@ -430,60 +455,35 @@
         </div>
     </div>
 
-    <!-- Success/Error Messages -->
-    <div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+    <!-- Modern Modal Container (handled by ModernModalService) -->
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/js/exam-builder.js"></script>
+    
+    <!-- MVC Structure - Load in correct order -->
+    <script src="/js/core/ApiClient.js"></script>
+    <script src="/js/models/Question.js"></script>
+    <script src="/js/models/Exam.js"></script>
+    <script src="/js/utils/TemplateEngine.js"></script>
+    <script src="/js/utils/ModernModalService.js"></script>
+    <script src="/js/views/ExamBuilderView.js"></script>
+    <script src="/js/services/ExamBuilderService.js"></script>
+    <script src="/js/controllers/ExamBuilderController.js"></script>
+    <script src="/js/exam-builder-mvc.js"></script>
+    
     <script>
-        // Override save function for edit mode
-        function saveExam() {
-            const examId = document.getElementById('examId').value;
-            const examData = collectExamData();
+        // Initialize MVC for edit mode
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get exam ID from the page
+            const examIdElement = document.getElementById('examId');
+            const examId = examIdElement ? examIdElement.value : null;
             
-            console.log('Updating exam data:', examData);
-            
-            if (!examData.title || !examData.subject_id) {
-                showMessage('Please fill in exam title and select a subject', 'error');
-                return;
+            // Initialize the MVC controller with exam ID for edit mode
+            if (examId) {
+                window.examBuilderController = new ExamBuilderController(examId);
+            } else {
+                console.error('No exam ID found for edit mode');
             }
-
-            // Show loading
-            const saveBtn = document.getElementById('saveBtn');
-            const originalText = saveBtn.innerHTML;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Updating...';
-            saveBtn.disabled = true;
-
-            // Send to server
-            fetch(`<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exam/${examId}/update`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(examData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage('Exam updated successfully!', 'success');
-                    setTimeout(() => {
-                        window.location.href = `<?= dirname($_SERVER['SCRIPT_NAME']) ?>/faculty/exam/${examId}`;
-                    }, 2000);
-                } else {
-                    showMessage(data.message || 'Failed to update exam', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showMessage('An error occurred while updating the exam', 'error');
-            })
-            .finally(() => {
-                saveBtn.innerHTML = originalText;
-                saveBtn.disabled = false;
-            });
-        }
-
-        // Existing questions are loaded by the main exam-builder.js file
+        });
     </script>
 </body>
 </html>
