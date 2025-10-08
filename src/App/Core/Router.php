@@ -63,33 +63,14 @@ class Router
             $path = '/';
         }
 
-        // Simplified path processing - don't strip subdirectories for built-in server
-        $scriptName = $_SERVER['SCRIPT_NAME'];
-        $scriptDir = dirname($scriptName);
-        
-        // Only strip if we're actually in a subdirectory (not for built-in server)
-        if ($scriptDir !== '/' && $scriptDir !== '.' && strpos($path, $scriptDir) === 0) {
-            $path = substr($path, strlen($scriptDir));
-            $path = $path === '' ? '/' : $path;
-        }
-
         // Debug: Log the processed path
         error_log("=== ROUTER PATH PROCESSING ===");
         error_log("Original URI: " . $_SERVER['REQUEST_URI']);
-        error_log("Original path: " . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
-        error_log("Script name: " . $scriptName);
-        error_log("Script dir: " . $scriptDir);
         error_log("Processed path: " . $path);
         error_log("Request method: " . $method);
         error_log("Available routes: " . json_encode(array_keys($this->routes[$method] ?? [])));
         error_log("Route exists check: " . (isset($this->routes[$method][$path]) ? 'YES' : 'NO'));
         error_log("==============================");
-        
-        // Special debug for student exam routes
-        if (strpos($path, '/student/exam/') === 0) {
-            error_log("STUDENT EXAM ROUTE DEBUG: Requested path = $path");
-            error_log("Available GET routes: " . json_encode(array_keys($this->routes['GET'] ?? [])));
-        }
 
         // Check if route exists
         if (isset($this->routes[$method][$path])) {
@@ -241,7 +222,7 @@ class Router
      */
     private function notFound()
     {
-        // Enhanced debugging for login issues
+        // Enhanced debugging for login issues (only in error log, not shown to user)
         $method = $_SERVER['REQUEST_METHOD'];
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         
@@ -254,16 +235,18 @@ class Router
         error_log("========================");
         
         http_response_code(404);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'Route not found.',
-            'debug' => [
-                'method' => $method,
-                'path' => $path,
-                'available_routes' => array_keys($this->routes[$method] ?? [])
-            ]
-        ]);
+        
+        // Check if this is an API request
+        if (strpos($path, '/api/') === 0) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Route not found.'
+            ]);
+        } else {
+            // For non-API requests, redirect to login or show error page
+            header('Location: /login');
+        }
     }
 
     /**

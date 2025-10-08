@@ -1,6 +1,9 @@
 <?php
 
-session_start();
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Set timezone to Philippines (adjust as needed)
 date_default_timezone_set('Asia/Manila');

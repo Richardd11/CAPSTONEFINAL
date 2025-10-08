@@ -16,6 +16,9 @@ if ($uri !== '/' && file_exists(__DIR__ . $uri)) {
 $originalDir = getcwd();
 chdir(__DIR__);
 
+// Set SCRIPT_NAME to index.php for consistent routing
+$_SERVER['SCRIPT_NAME'] = '/index.php';
+
 // For all other requests, route through index.php
 try {
     require_once 'index.php';
